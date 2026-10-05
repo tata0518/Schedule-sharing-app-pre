@@ -21,7 +21,7 @@
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation; /* ダブルタップによるズームを防止 */
+            touch-action: manipulation;
         }
 
         html, body {
@@ -101,7 +101,7 @@
             display: flex;
         }
 
-        /* ① 月表示（カレンダー）の修正 */
+        /* 月表示（カレンダー） */
         .month-grid-wrapper {
             display: flex;
             flex-direction: column;
@@ -169,13 +169,13 @@
         .summary-chita { color: var(--chita-color); }
         .summary-akita { color: var(--akita-color); }
 
-        /* ② 週表示 */
+        /* ① 週表示：スペースいっぱいに均等に7つ並べる */
         .week-container {
             display: flex;
             flex-direction: column;
             flex: 1;
             gap: 3px;
-            overflow-y: auto;
+            overflow: hidden;
         }
 
         .week-row {
@@ -183,8 +183,8 @@
             background: #fff;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            min-height: 52px;
-            flex-shrink: 0;
+            flex: 1;
+            overflow: hidden;
         }
 
         .week-date-col {
@@ -281,7 +281,7 @@
             margin-bottom: 2px;
         }
 
-        /* ⑤ 修正：ポップアップのスクロール改善 */
+        /* ③④ ポップアップの調整（縦幅を90%に、ボタンを大きく押しやすく、キャンセル削除） */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -304,7 +304,7 @@
             background: #fff;
             width: 92%;
             max-width: 400px;
-            height: 85vh; /* 固定高さを持たせて確実に内部スクロールさせる */
+            height: 76.5vh; /* 前回の85vhの90% (85 * 0.9 = 76.5) */
             border-radius: 8px;
             display: flex;
             flex-direction: column;
@@ -340,7 +340,7 @@
         }
 
         .modal-footer {
-            padding: 8px 12px;
+            padding: 10px 14px;
             border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: flex-end;
@@ -349,7 +349,15 @@
             background: #fff;
         }
 
-        /* フォーム要素 (ズーム防止のためフォントサイズ16pxにせず、タッチ操作最適化) */
+        /* ③ ボタンを大きく押しやすく改善 */
+        .modal-footer button {
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* フォーム要素 */
         .form-group {
             margin-bottom: 10px;
         }
@@ -443,7 +451,7 @@
             </div>
             <div class="modal-body" id="detailModalBody"></div>
             <div class="modal-footer">
-                <button onclick="openEditFromDetail()">編集する</button>
+                <button class="batch-btn" onclick="openEditFromDetail()">編集する</button>
             </div>
         </div>
     </div>
@@ -457,13 +465,12 @@
             </div>
             <div class="modal-body" id="editModalBody"></div>
             <div class="modal-footer">
-                <button onclick="closeModal('singleEditModal')">キャンセル</button>
                 <button class="batch-btn" onclick="saveSingleData()">保存</button>
             </div>
         </div>
     </div>
 
-    <!-- ④ 一括編集ポップアップ（全項目対応・初期値反映） -->
+    <!-- 一括編集ポップアップ -->
     <div class="modal-overlay" id="batchEditModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -472,7 +479,6 @@
             </div>
             <div class="modal-body" id="batchEditBody"></div>
             <div class="modal-footer">
-                <button onclick="closeModal('batchEditModal')">キャンセル</button>
                 <button class="batch-btn" onclick="saveBatchData()">一括保存</button>
             </div>
         </div>
@@ -480,9 +486,8 @@
 
     <script>
         let currentTab = 'month';
-        let currentDate = new Date(2026, 9, 5); // 2026年10月5日基準
+        let currentDate = new Date(2026, 9, 5);
 
-        // サンプルデータ構造 (実際はGAS/スプレッドシートから取得)
         let sampleData = {
             "2026-10-5": {
                 chita: { plan: "在宅", returnTime: "◯", dinner: "◯" },
@@ -494,10 +499,10 @@
                 akita: { plan: "飲み会", returnTime: "23:00", dinner: "×" },
                 menu: "カレー", memo: ""
             },
-            "2026-10-11": { // 休日（土）
+            "2026-10-11": {
                 isHoliday: true,
                 chita: { plan: "予定", departTime: "10:00", returnTime: "18:00", lunch: "◯", dinner: "◯" },
-                akita: { plan: "予定", departTime: "予定なし", returnTime: "17:00", lunch: "×", dinner: "◯" },
+                akita: { plan: "予定", departTime: "10:00", returnTime: "17:00", lunch: "×", dinner: "◯" },
                 menu: "外食", memo: "ジム行く"
             }
         };
@@ -506,7 +511,6 @@
             return `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
         }
 
-        // タブ切り替え
         function switchTab(tab) {
             currentTab = tab;
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
@@ -517,7 +521,7 @@
             if (tab === 'month') {
                 document.getElementById('tabMonth').classList.add('active');
                 document.querySelectorAll('.tab-item')[0].classList.add('active');
-                batchBtn.style.display = 'none'; // ① 月表示では一括編集不要のため非表示
+                batchBtn.style.display = 'none';
                 renderMonthView();
             } else {
                 document.getElementById('tabWeek').classList.add('active');
@@ -527,7 +531,6 @@
             }
         }
 
-        // ① 遷移ボタンの修正（月・週の切り替えを確実に動作させる）
         function changePeriod(direction) {
             if (currentTab === 'month') {
                 currentDate.setMonth(currentDate.getMonth() + direction);
@@ -544,7 +547,6 @@
             else renderWeekView();
         }
 
-        // ① 月表示の描画（日付の枠・グリッドを正しく表示）
         function renderMonthView() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -554,29 +556,25 @@
             wrapper.innerHTML = '';
 
             let firstDay = new Date(year, month, 1).getDay();
-            firstDay = (firstDay === 0) ? 6 : firstDay - 1; // 月曜始まり
+            firstDay = (firstDay === 0) ? 6 : firstDay - 1;
 
             const lastDate = new Date(year, month + 1, 0).getDate();
             const prevLastDate = new Date(year, month, 0).getDate();
 
             let daysArray = [];
 
-            // 前月の余白
             for (let i = firstDay - 1; i >= 0; i--) {
                 daysArray.push({ day: prevLastDate - i, isOther: true });
             }
-            // 当月
             for (let d = 1; d <= lastDate; d++) {
                 daysArray.push({ day: d, isOther: false, year: year, month: month, date: d });
             }
-            // 翌月の余白（合計が35または42マスになるように調整）
             const totalCellsNeeded = daysArray.length <= 35 ? 35 : 42;
             let nextMonthDay = 1;
             while (daysArray.length < totalCellsNeeded) {
                 daysArray.push({ day: nextMonthDay++, isOther: true });
             }
 
-            // 週単位（7日ごと）に分割して行を生成
             for (let i = 0; i < daysArray.length; i += 7) {
                 const weekRow = document.createElement('div');
                 weekRow.className = 'month-week-row';
@@ -610,7 +608,6 @@
             }
         }
 
-        // ③ 週表示の描画（休日には昼食項目も含めて表示）
         function renderWeekView() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -677,7 +674,6 @@
             }
         }
 
-        // ポップアップ制御
         function openDayDetail(y, m, d) {
             const targetD = new Date(y, m, d);
             const isHoliday = (targetD.getDay() === 0 || targetD.getDay() === 6);
@@ -768,7 +764,7 @@
             document.getElementById('singleEditModal').classList.add('open');
         }
 
-        // ④ 週表示の一括編集（すべての項目を編集可能にし、既存データを反映）
+        // ② 週表示の一括編集：休日の入力欄を狭くして平日と幅を揃える
         function openBatchModal() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -797,30 +793,30 @@
                     </div>
                     <div style="padding: 4px 0;">
                         <div style="font-size:10px; color:var(--chita-color); font-weight:bold;">●ちーた</div>
-                        <div style="display:flex; gap:4px; margin-bottom:2px;">
-                            <input type="text" placeholder="予定" id="batch_${dKey}_c_plan" value="${dData.chita.plan || ''}" style="flex:2" maxlength="20">
-                            ${isHoliday ? `<input type="text" placeholder="出発" id="batch_${dKey}_c_dep" value="${dData.chita.departTime || ''}" style="flex:1">` : ''}
-                            <input type="text" placeholder="帰宅" id="batch_${dKey}_c_ret" value="${dData.chita.returnTime || ''}" style="flex:1">
+                        <div style="display:flex; gap:3px; margin-bottom:2px;">
+                            <input type="text" placeholder="予定" id="batch_${dKey}_c_plan" value="${dData.chita.plan || ''}" style="flex:2; font-size:11px; padding:4px;" maxlength="20">
+                            ${isHoliday ? `<input type="text" placeholder="出発" id="batch_${dKey}_c_dep" value="${dData.chita.departTime || ''}" style="flex:1; font-size:11px; padding:4px;">` : ''}
+                            <input type="text" placeholder="帰宅" id="batch_${dKey}_c_ret" value="${dData.chita.returnTime || ''}" style="flex:1; font-size:11px; padding:4px;">
                         </div>
-                        <div style="display:flex; gap:4px; margin-bottom:4px;">
-                            ${isHoliday ? `<select id="batch_${dKey}_c_lun" style="flex:1"><option value="◯" ${dData.chita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.chita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.chita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
-                            <select id="batch_${dKey}_c_din" style="flex:1"><option value="◯" ${dData.chita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.chita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.chita.dinner==='未定'?'selected':''}>夕未定</option></select>
+                        <div style="display:flex; gap:3px; margin-bottom:4px;">
+                            ${isHoliday ? `<select id="batch_${dKey}_c_lun" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.chita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.chita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.chita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                            <select id="batch_${dKey}_c_din" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.chita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.chita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.chita.dinner==='未定'?'selected':''}>夕未定</option></select>
                         </div>
 
                         <div style="font-size:10px; color:var(--akita-color); font-weight:bold;">●あきた</div>
-                        <div style="display:flex; gap:4px; margin-bottom:2px;">
-                            <input type="text" placeholder="予定" id="batch_${dKey}_a_plan" value="${dData.akita.plan || ''}" style="flex:2" maxlength="20">
-                            ${isHoliday ? `<input type="text" placeholder="出発" id="batch_${dKey}_a_dep" value="${dData.akita.departTime || ''}" style="flex:1">` : ''}
-                            <input type="text" placeholder="帰宅" id="batch_${dKey}_a_ret" value="${dData.akita.returnTime || ''}" style="flex:1">
+                        <div style="display:flex; gap:3px; margin-bottom:2px;">
+                            <input type="text" placeholder="予定" id="batch_${dKey}_a_plan" value="${dData.akita.plan || ''}" style="flex:2; font-size:11px; padding:4px;" maxlength="20">
+                            ${isHoliday ? `<input type="text" placeholder="出発" id="batch_${dKey}_a_dep" value="${dData.akita.departTime || ''}" style="flex:1; font-size:11px; padding:4px;">` : ''}
+                            <input type="text" placeholder="帰宅" id="batch_${dKey}_a_ret" value="${dData.akita.returnTime || ''}" style="flex:1; font-size:11px; padding:4px;">
                         </div>
-                        <div style="display:flex; gap:4px; margin-bottom:4px;">
-                            ${isHoliday ? `<select id="batch_${dKey}_a_lun" style="flex:1"><option value="◯" ${dData.akita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.akita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.akita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
-                            <select id="batch_${dKey}_a_din" style="flex:1"><option value="◯" ${dData.akita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.akita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.akita.dinner==='未定'?'selected':''}>夕未定</option></select>
+                        <div style="display:flex; gap:3px; margin-bottom:4px;">
+                            ${isHoliday ? `<select id="batch_${dKey}_a_lun" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.akita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.akita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.akita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                            <select id="batch_${dKey}_a_din" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.akita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.akita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.akita.dinner==='未定'?'selected':''}>夕未定</option></select>
                         </div>
 
-                        <div style="display:flex; gap:4px;">
-                            <input type="text" placeholder="夕食メニュー" id="batch_${dKey}_menu" value="${dData.menu || ''}" style="flex:1" maxlength="20">
-                            <input type="text" placeholder="備考" id="batch_${dKey}_memo" value="${dData.memo || ''}" style="flex:1">
+                        <div style="display:flex; gap:3px;">
+                            <input type="text" placeholder="夕食メニュー" id="batch_${dKey}_menu" value="${dData.menu || ''}" style="flex:1; font-size:11px; padding:4px;" maxlength="20">
+                            <input type="text" placeholder="備考" id="batch_${dKey}_memo" value="${dData.memo || ''}" style="flex:1; font-size:11px; padding:4px;">
                         </div>
                     </div>
                 `;
@@ -897,7 +893,6 @@
             renderWeekView();
         }
 
-        // 初期表示
         renderMonthView();
     </script>
 </body>
