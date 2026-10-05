@@ -68,14 +68,20 @@
             cursor: pointer;
         }
 
+        /* ④ タイトルを中央に配置 */
         .current-title {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             font-size: 15px;
             font-weight: bold;
+            pointer-events: none;
         }
 
         .header-right-group {
             display: flex;
             gap: 6px;
+            z-index: 1;
         }
 
         .batch-btn {
@@ -112,7 +118,7 @@
             display: flex;
         }
 
-        /* 月表示（カレンダー）：行幅を少し減らす */
+        /* 月表示（カレンダー） */
         .month-grid-wrapper {
             display: flex;
             flex-direction: column;
@@ -132,30 +138,31 @@
             background: var(--border-color);
         }
 
+        /* ④ 曜日の文字サイズを一回り大きく */
         .weekday-header-row {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
             background: #fff;
-            font-size: 11px;
+            font-size: 13px;
             font-weight: bold;
             text-align: center;
-            padding: 2px 0;
+            padding: 3px 0;
             border-bottom: 1px solid var(--border-color);
             flex-shrink: 0;
         }
 
-        .weekday-header:nth-child(6) { color: var(--akita-color); }
-        .weekday-header:nth-child(7) { color: var(--chita-color); }
+        .weekday-header:nth-child(6), .calendar-cell.sat .day-num { color: var(--akita-color); }
+        .weekday-header:nth-child(7), .calendar-cell.sun .day-num, .calendar-cell.holiday .day-num { color: var(--chita-color); }
 
         .calendar-cell {
             background: #fff;
-            padding: 1px 2px;
+            padding: 2px;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
             cursor: pointer;
             overflow: hidden;
-            font-size: 10px;
+            font-size: 9px;
         }
 
         .calendar-cell.other-month {
@@ -163,10 +170,12 @@
             color: #bbb;
         }
 
+        /* ④ 日付の文字サイズを一回り大きく */
         .calendar-cell .day-num {
             font-weight: bold;
-            font-size: 11px;
-            margin-bottom: 0px;
+            font-size: 13px;
+            margin-bottom: 1px;
+            line-height: 1;
         }
 
         .calendar-cell-summary {
@@ -177,7 +186,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            line-height: 1.1;
+            line-height: 1.15;
             margin-top: 1px;
         }
 
@@ -191,7 +200,7 @@
         .calendar-tag.chita { background: var(--chita-bg); color: var(--chita-color); }
         .calendar-tag.akita { background: var(--akita-bg); color: var(--akita-color); }
 
-        /* 週表示：行幅を少し減らし、文字サイズを約1.2倍に */
+        /* 週表示 */
         .week-container {
             display: flex;
             flex-direction: column;
@@ -216,13 +225,13 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 13px; /* 1.2倍 */
+            font-size: 13px;
             font-weight: bold;
             border-right: 1px solid var(--border-color);
             flex-shrink: 0;
         }
         .week-date-col.sat { color: var(--akita-color); }
-        .week-date-col.sun { color: var(--chita-color); }
+        .week-date-col.sun, .week-date-col.holiday { color: var(--chita-color); }
 
         .week-data-col {
             flex: 1;
@@ -230,7 +239,7 @@
             flex-direction: column;
             justify-content: space-around;
             padding: 2px 6px;
-            font-size: 12px; /* 1.2倍 */
+            font-size: 12px;
             overflow: hidden;
         }
 
@@ -255,7 +264,7 @@
             font-weight: bold;
             padding: 0 3px;
             border-radius: 2px;
-            font-size: 11px; /* 1.2倍 */
+            font-size: 11px;
             flex-shrink: 0;
         }
         .person-tag.chita { background: var(--chita-bg); color: var(--chita-color); }
@@ -284,7 +293,7 @@
             background: #fff;
         }
 
-        /* ① 下部タブバー：高さを150%（50px → 75px）にする */
+        /* 下部タブバー */
         nav.tab-bar {
             display: flex;
             height: 75px;
@@ -391,7 +400,6 @@
             cursor: pointer;
         }
 
-        /* フォーム要素 */
         .form-group {
             margin-bottom: 10px;
         }
@@ -430,7 +438,7 @@
         <header>
             <div class="nav-controls">
                 <button onclick="changePeriod(-1)">◀︎</button>
-                <button onclick="resetToCurrent()">今</button>
+                <button id="todayBtn" onclick="resetToCurrent()">今月</button>
                 <button onclick="changePeriod(1)">▶︎</button>
             </div>
             <div class="current-title" id="currentTitle">2026年 10月</div>
@@ -440,7 +448,7 @@
             </div>
         </header>
 
-        <!-- メインコンテンツ（②左右スワイプ対応） -->
+        <!-- メインコンテンツ -->
         <div class="content-container" id="contentContainer">
             <!-- 月表示タブ -->
             <div id="tabMonth" class="tab-pane active">
@@ -538,12 +546,69 @@
                 menu: "カレー", memo: ""
             },
             "2026-10-11": {
-                isHoliday: true,
+                isHolidayOverride: true,
                 chita: { plan: "予定", departTime: "10:00", returnTime: "18:00", lunch: "◯", dinner: "◯" },
                 akita: { plan: "予定", departTime: "10:00", returnTime: "17:00", lunch: "×", dinner: "◯" },
                 menu: "外食", memo: "ジム行く"
             }
         };
+
+        // ① 日本の祝日判定ロジック（簡易版 / 必要に応じて拡張可能）
+        function getJapaneseHolidayName(year, month, day) {
+            // 固定祝日および主要な祝日の計算（月は0始まりではなく1~12）
+            const m = month + 1;
+            const d = day;
+            
+            // 元日: 1月1日
+            if (m === 1 && d === 1) return "元日";
+            // 成人の日: 1月第2月曜
+            if (m === 1 && d >= 8 && d <= 14 && new Date(year, month, d).getDay() === 1) return "成人の日";
+            // 建国記念の日: 2月11日
+            if (m === 2 && d === 11) return "建国記念の日";
+            // 天皇誕生日: 2月23日
+            if (m === 2 && d === 23) return "天皇誕生日";
+            // 春分の日: 簡易計算 (2026年は3月20日)
+            if (m === 3 && d === 20) return "春分の日";
+            // 昭和の日: 4月29日
+            if (m === 4 && d === 29) return "昭和の日";
+            // 憲法記念日: 5月3日
+            if (m === 5 && d === 3) return "憲法記念日";
+            // みどりの日: 5月4日
+            if (m === 5 && d === 4) return "みどりの日";
+            // こどもの日: 5月5日
+            if (m === 5 && d === 5) return "こどもの日";
+            // 海の日: 7月第3月曜
+            if (m === 7 && d >= 15 && d <= 21 && new Date(year, month, d).getDay() === 1) return "海の日";
+            // 山の日: 8月11日
+            if (m === 8 && d === 11) return "山の日";
+            // 敬老の日: 9月第3月曜
+            if (m === 9 && d >= 15 && d <= 21 && new Date(year, month, d).getDay() === 1) return "敬老の日";
+            // 秋分の日: 簡易計算 (2026年は9月23日)
+            if (m === 9 && d === 23) return "秋分の日";
+            // スポーツの日: 10月第2月曜 (2026年10月は10月12日)
+            if (m === 10 && d >= 8 && d <= 14 && new Date(year, month, d).getDay() === 1) return "スポーツの日";
+            // 文化の日: 11月3日
+            if (m === 11 && d === 3) return "文化の日";
+            // 勤労感謝の日: 11月23日
+            if (m === 11 && d === 23) return "勤労感謝の日";
+
+            return null;
+        }
+
+        function isHolidayDate(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = dateObj.getMonth();
+            const d = dateObj.getDate();
+            const dayOfWeek = dateObj.getDay();
+            const dKey = `${y}-${m+1}-${d}`;
+            
+            // 土日、または祝日、または手動設定の「特別な休日」
+            const isSatSun = (dayOfWeek === 0 || dayOfWeek === 6);
+            const isNationalHoliday = (getJapaneseHolidayName(y, m, d) !== null);
+            const hasOverride = sampleData[dKey] && sampleData[dKey].isHolidayOverride;
+
+            return isSatSun || isNationalHoliday || hasOverride;
+        }
 
         function getDataKey(dateObj) {
             return `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
@@ -551,18 +616,20 @@
 
         function switchTab(tab) {
             currentTab = tab;
-            isInlineEditing = false; // タブ切り替え時は通常モードに戻す
+            isInlineEditing = false;
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
             
             const batchBtn = document.getElementById('batchBtn');
             const inlineToggleBtn = document.getElementById('inlineToggleBtn');
+            const todayBtn = document.getElementById('todayBtn');
 
             if (tab === 'month') {
                 document.getElementById('tabMonth').classList.add('active');
                 document.querySelectorAll('.tab-item')[0].classList.add('active');
                 batchBtn.style.display = 'none';
                 inlineToggleBtn.style.display = 'none';
+                todayBtn.innerText = '今月';
                 renderMonthView();
             } else {
                 document.getElementById('tabWeek').classList.add('active');
@@ -570,12 +637,13 @@
                 batchBtn.style.display = 'block';
                 inlineToggleBtn.style.display = 'block';
                 inlineToggleBtn.innerText = '部分編集';
+                todayBtn.innerText = '今週';
                 renderWeekView();
             }
         }
 
         function changePeriod(direction) {
-            isInlineEditing = false; // 期間変更時も通常モードに戻す
+            isInlineEditing = false;
             const inlineToggleBtn = document.getElementById('inlineToggleBtn');
             if(inlineToggleBtn) inlineToggleBtn.innerText = '部分編集';
 
@@ -604,7 +672,6 @@
             if (isInlineEditing) {
                 btn.innerText = '完了';
             } else {
-                // 「完了」を押したときにその場でデータを保存する
                 saveInlineData();
                 btn.innerText = '部分編集';
             }
@@ -646,30 +713,39 @@
                 for (let j = 0; j < 7; j++) {
                     const item = daysArray[i + j];
                     const cell = document.createElement('div');
-                    cell.className = `calendar-cell ${item.isOther ? 'other-month' : ''}`;
                     
                     if (!item.isOther) {
+                        const targetD = new Date(item.year, item.month, item.date);
+                        const isHol = isHolidayDate(targetD);
+                        const dayOfWeek = targetD.getDay();
+                        let dayClass = '';
+                        if (dayOfWeek === 6) dayClass = 'sat';
+                        else if (dayOfWeek === 0 || isHol) dayClass = isHol && dayOfWeek !== 0 ? 'holiday' : 'sun';
+
+                        cell.className = `calendar-cell ${dayClass}`;
                         const dKey = `${item.year}-${item.month + 1}-${item.date}`;
                         const dayData = sampleData[dKey];
-                        let cPlan = "-";
-                        let aPlan = "-";
+                        
+                        let cPlan = "";
+                        let aPlan = "";
+                        let menuText = "";
                         if (dayData) {
-                            cPlan = dayData.chita.plan || '-';
-                            aPlan = dayData.akita.plan || '-';
+                            cPlan = dayData.chita.plan ? `ち:${dayData.chita.plan}` : '';
+                            aPlan = dayData.akita.plan ? `あ:${dayData.akita.plan}` : '';
+                            menuText = dayData.menu ? `メ:${dayData.menu}` : '';
                         }
+
                         cell.onclick = () => openDayDetail(item.year, item.month, item.date);
+                        
+                        // ⑤ 各人の予定などを最大4行まで表示できるようにする
                         cell.innerHTML = `
                             <div class="day-num">${item.day}</div>
-                            <div class="calendar-cell-summary">
-                                <span class="calendar-tag chita">ち</span>
-                                <span style="overflow:hidden; text-overflow:ellipsis;">${cPlan}</span>
-                            </div>
-                            <div class="calendar-cell-summary">
-                                <span class="calendar-tag akita">あ</span>
-                                <span style="overflow:hidden; text-overflow:ellipsis;">${aPlan}</span>
-                            </div>
+                            <div class="calendar-cell-summary"><span style="overflow:hidden; text-overflow:ellipsis;">${cPlan}</span></div>
+                            <div class="calendar-cell-summary"><span style="overflow:hidden; text-overflow:ellipsis;">${aPlan}</span></div>
+                            <div class="calendar-cell-summary"><span style="overflow:hidden; text-overflow:ellipsis; color:#666;">${menuText}</span></div>
                         `;
                     } else {
+                        cell.className = `calendar-cell other-month`;
                         cell.innerHTML = `<div class="day-num">${item.day}</div>`;
                     }
                     weekRow.appendChild(cell);
@@ -699,9 +775,13 @@
             for (let i = 0; i < 7; i++) {
                 const targetD = new Date(monday);
                 targetD.setDate(monday.getDate() + i);
+                const isHol = isHolidayDate(targetD);
                 const isSat = (i === 5);
                 const isSun = (i === 6);
-                const isHoliday = isSat || isSun;
+                
+                let dateColClass = '';
+                if (isSat) dateColClass = 'sat';
+                else if (isSun || isHol) dateColClass = isHol && !isSun ? 'holiday' : 'sun';
 
                 const dKey = getDataKey(targetD);
                 const dData = sampleData[dKey] || {
@@ -716,16 +796,15 @@
                 let rowInnerHtml = '';
 
                 if (!isInlineEditing) {
-                    // 通常表示モード
                     let chitaText = `${dData.chita.plan} / 帰:${dData.chita.returnTime || '◯'} / 夕:${dData.chita.dinner || '◯'}`;
                     let akitaText = `${dData.akita.plan} / 帰:${dData.akita.returnTime || '19:00'} / 夕:${dData.akita.dinner || '×'}`;
-                    if (isHoliday) {
+                    if (isHol) {
                         chitaText = `${dData.chita.plan} / 出:${dData.chita.departTime || '-'} 帰:${dData.chita.returnTime || '-'} / 昼:${dData.chita.lunch || '-'} 夕:${dData.chita.dinner || '-'}`;
                         akitaText = `${dData.akita.plan} / 出:${dData.akita.departTime || '-'} 帰:${dData.akita.returnTime || '-'} / 昼:${dData.akita.lunch || '-'} 夕:${dData.akita.dinner || '-'}`;
                     }
 
                     rowInnerHtml = `
-                        <div class="week-date-col ${isSat?'sat':''} ${isSun?'sun':''}">
+                        <div class="week-date-col ${dateColClass}">
                             <span>${targetD.getMonth() + 1}/${targetD.getDate()}</span>
                             <span>(${days[i]})</span>
                         </div>
@@ -745,7 +824,6 @@
                         </div>
                     `;
                 } else {
-                    // 部分編集（インライン入力）モード
                     const cPlan = dData.chita.plan || '';
                     const cDep = dData.chita.departTime || '';
                     const cRet = dData.chita.returnTime || '';
@@ -762,22 +840,22 @@
 
                     let chitaForm = `
                         <input type="text" class="inline-input plan" id="inline_${dKey}_c_plan" value="${cPlan}" placeholder="予定">
-                        ${isHoliday ? `<input type="text" class="inline-input short" id="inline_${dKey}_c_dep" value="${cDep}" placeholder="出">` : ''}
+                        ${isHol ? `<input type="text" class="inline-input short" id="inline_${dKey}_c_dep" value="${cDep}" placeholder="出">` : ''}
                         <input type="text" class="inline-input short" id="inline_${dKey}_c_ret" value="${cRet}" placeholder="帰">
-                        ${isHoliday ? `<select class="inline-select" id="inline_${dKey}_c_lun"><option value="◯" ${cLun==='◯'?'selected':''}>昼◯</option><option value="×" ${cLun==='×'?'selected':''}>昼×</option><option value="未定" ${cLun==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                        ${isHol ? `<select class="inline-select" id="inline_${dKey}_c_lun"><option value="◯" ${cLun==='◯'?'selected':''}>昼◯</option><option value="×" ${cLun==='×'?'selected':''}>昼×</option><option value="未定" ${cLun==='未定'?'selected':''}>昼未定</option></select>` : ''}
                         <select class="inline-select" id="inline_${dKey}_c_din"><option value="◯" ${cDin==='◯'?'selected':''}>夕◯</option><option value="×" ${cDin==='×'?'selected':''}>夕×</option><option value="未定" ${cDin==='未定'?'selected':''}>夕未定</option></select>
                     `;
 
                     let akitaForm = `
                         <input type="text" class="inline-input plan" id="inline_${dKey}_a_plan" value="${aPlan}" placeholder="予定">
-                        ${isHoliday ? `<input type="text" class="inline-input short" id="inline_${dKey}_a_dep" value="${aDep}" placeholder="出">` : ''}
+                        ${isHol ? `<input type="text" class="inline-input short" id="inline_${dKey}_a_dep" value="${aDep}" placeholder="出">` : ''}
                         <input type="text" class="inline-input short" id="inline_${dKey}_a_ret" value="${aRet}" placeholder="帰">
-                        ${isHoliday ? `<select class="inline-select" id="inline_${dKey}_a_lun"><option value="◯" ${aLun==='◯'?'selected':''}>昼◯</option><option value="×" ${aLun==='×'?'selected':''}>昼×</option><option value="未定" ${aLun==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                        ${isHol ? `<select class="inline-select" id="inline_${dKey}_a_lun"><option value="◯" ${aLun==='◯'?'selected':''}>昼◯</option><option value="×" ${aLun==='×'?'selected':''}>昼×</option><option value="未定" ${aLun==='未定'?'selected':''}>昼未定</option></select>` : ''}
                         <select class="inline-select" id="inline_${dKey}_a_din"><option value="◯" ${aDin==='◯'?'selected':''}>夕◯</option><option value="×" ${aDin==='×'?'selected':''}>夕×</option><option value="未定" ${aDin==='未定'?'selected':''}>夕未定</option></select>
                     `;
 
                     rowInnerHtml = `
-                        <div class="week-date-col ${isSat?'sat':''} ${isSun?'sun':''}">
+                        <div class="week-date-col ${dateColClass}">
                             <span>${targetD.getMonth() + 1}/${targetD.getDate()}</span>
                             <span>(${days[i]})</span>
                         </div>
@@ -816,7 +894,7 @@
             for (let i = 0; i < 7; i++) {
                 const targetD = new Date(monday);
                 targetD.setDate(monday.getDate() + i);
-                const isHoliday = (i >= 5);
+                const isHol = isHolidayDate(targetD);
                 const dKey = getDataKey(targetD);
 
                 if (!sampleData[dKey]) {
@@ -827,17 +905,17 @@
                 if (cPlanEl) {
                     sampleData[dKey].chita = {
                         plan: cPlanEl.value,
-                        departTime: isHoliday ? document.getElementById(`inline_${dKey}_c_dep`).value : undefined,
+                        departTime: isHol ? document.getElementById(`inline_${dKey}_c_dep`).value : undefined,
                         returnTime: document.getElementById(`inline_${dKey}_c_ret`).value,
-                        lunch: isHoliday ? document.getElementById(`inline_${dKey}_c_lun`).value : undefined,
+                        lunch: isHol ? document.getElementById(`inline_${dKey}_c_lun`).value : undefined,
                         dinner: document.getElementById(`inline_${dKey}_c_din`).value
                     };
 
                     sampleData[dKey].akita = {
                         plan: document.getElementById(`inline_${dKey}_a_plan`).value,
-                        departTime: isHoliday ? document.getElementById(`inline_${dKey}_a_dep`).value : undefined,
+                        departTime: isHol ? document.getElementById(`inline_${dKey}_a_dep`).value : undefined,
                         returnTime: document.getElementById(`inline_${dKey}_a_ret`).value,
-                        lunch: isHoliday ? document.getElementById(`inline_${dKey}_a_lun`).value : undefined,
+                        lunch: isHol ? document.getElementById(`inline_${dKey}_a_lun`).value : undefined,
                         dinner: document.getElementById(`inline_${dKey}_a_din`).value
                     };
 
@@ -848,7 +926,7 @@
 
         function openDayDetail(y, m, d) {
             const targetD = new Date(y, m, d);
-            const isHoliday = (targetD.getDay() === 0 || targetD.getDay() === 6);
+            const isHol = isHolidayDate(targetD);
             const dKey = getDataKey(targetD);
             const dData = sampleData[dKey] || {
                 chita: { plan: "未登録", returnTime: "-", lunch: "-", dinner: "-" },
@@ -856,11 +934,14 @@
                 menu: "", memo: ""
             };
 
-            document.getElementById('detailModalTitle').innerText = `${m + 1}月${d}日(${['日','月','火','水','木','金','土'][targetD.getDay()]}) の詳細`;
+            const holName = getJapaneseHolidayName(y, m, d);
+            let titleExtra = holName ? ` (${holName})` : '';
+
+            document.getElementById('detailModalTitle').innerText = `${m + 1}月${d}日(${['日','月','火','水','木','金','土'][targetD.getDay()]})${titleExtra} の詳細`;
             
             let chitaHtml = `<div>予定: ${dData.chita.plan}</div><div>帰宅時刻: ${dData.chita.returnTime}</div>`;
             let akitaHtml = `<div>予定: ${dData.akita.plan}</div><div>帰宅時刻: ${dData.akita.returnTime}</div>`;
-            if(isHoliday) {
+            if(isHol) {
                 chitaHtml = `<div>予定: ${dData.chita.plan}</div><div>出発: ${dData.chita.departTime||'-'} / 帰宅: ${dData.chita.returnTime||'-'}</div><div>昼食: ${dData.chita.lunch||'-'} / 夕食: ${dData.chita.dinner||'-'}</div>`;
                 akitaHtml = `<div>予定: ${dData.akita.plan}</div><div>出発: ${dData.akita.departTime||'-'} / 帰宅: ${dData.akita.returnTime||'-'}</div><div>昼食: ${dData.akita.lunch||'-'} / 夕食: ${dData.akita.dinner||'-'}</div>`;
             } else {
@@ -896,7 +977,7 @@
         function openSingleEdit(y, m, d, targetSection = 'all') {
             closeModal('dayDetailModal');
             const targetD = new Date(y, m, d);
-            const isHoliday = (targetD.getDay() === 0 || targetD.getDay() === 6);
+            const isHol = isHolidayDate(targetD);
             const dKey = getDataKey(targetD);
             const dData = sampleData[dKey] || {
                 chita: { plan: "", returnTime: "", lunch: "未定", dinner: "未定" },
@@ -904,26 +985,21 @@
                 menu: "", memo: ""
             };
 
-            let titleSuffix = '';
-            if (targetSection === 'chita') titleSuffix = ' (ちーた)';
-            else if (targetSection === 'akita') titleSuffix = ' (あきた)';
-            else if (targetSection === 'menu') titleSuffix = ' (メニュー)';
-
-            document.getElementById('editModalTitle').innerText = `${m + 1}月${d}日の編集${titleSuffix}`;
+            document.getElementById('editModalTitle').innerText = `${m + 1}月${d}日の編集`;
             
             let chitaFields = `
                 <div class="form-group"><label>予定</label><input type="text" id="edit_c_plan" value="${dData.chita.plan || ''}"></div>
-                ${isHoliday ? `<div class="form-group"><label>出発時刻</label><input type="text" id="edit_c_depart" value="${dData.chita.departTime || ''}"></div>` : ''}
+                ${isHol ? `<div class="form-group"><label>出発時刻</label><input type="text" id="edit_c_depart" value="${dData.chita.departTime || ''}"></div>` : ''}
                 <div class="form-group"><label>帰宅時刻</label><input type="text" id="edit_c_return" value="${dData.chita.returnTime || ''}"></div>
-                ${isHoliday ? `<div class="form-group"><label>昼食要否</label><select id="edit_c_lunch"><option ${dData.chita.lunch==='◯'?'selected':''}>◯</option><option ${dData.chita.lunch==='×'?'selected':''}>×</option><option${dData.chita.lunch==='未定'?'selected':''}>未定</option></select></div>` : ''}
+                ${isHol ? `<div class="form-group"><label>昼食要否</label><select id="edit_c_lunch"><option ${dData.chita.lunch==='◯'?'selected':''}>◯</option><option ${dData.chita.lunch==='×'?'selected':''}>×</option><option${dData.chita.lunch==='未定'?'selected':''}>未定</option></select></div>` : ''}
                 <div class="form-group"><label>夕食要否</label><select id="edit_c_dinner"><option ${dData.chita.dinner==='◯'?'selected':''}>◯</option><option ${dData.chita.dinner==='×'?'selected':''}>×</option><option ${dData.chita.dinner==='未定'?'selected':''}>未定</option></select></div>
             `;
 
             let akitaFields = `
                 <div class="form-group"><label>予定</label><input type="text" id="edit_a_plan" value="${dData.akita.plan || ''}"></div>
-                ${isHoliday ? `<div class="form-group"><label>出発時刻</label><input type="text" id="edit_a_depart" value="${dData.akita.departTime || ''}"></div>` : ''}
+                ${isHol ? `<div class="form-group"><label>出発時刻</label><input type="text" id="edit_a_depart" value="${dData.akita.departTime || ''}"></div>` : ''}
                 <div class="form-group"><label>帰宅時刻</label><input type="text" id="edit_a_return" value="${dData.akita.returnTime || ''}"></div>
-                ${isHoliday ? `<div class="form-group"><label>昼食要否</label><select id="edit_a_lunch"><option ${dData.akita.lunch==='◯'?'selected':''}>◯</option><option ${dData.akita.lunch==='×'?'selected':''}>×</option><option${dData.akita.lunch==='未定'?'selected':''}>未定</option></select></div>` : ''}
+                ${isHol ? `<div class="form-group"><label>昼食要否</label><select id="edit_a_lunch"><option ${dData.akita.lunch==='◯'?'selected':''}>◯</option><option ${dData.akita.lunch==='×'?'selected':''}>×</option><option${dData.akita.lunch==='未定'?'selected':''}>未定</option></select></div>` : ''}
                 <div class="form-group"><label>夕食要否</label><select id="edit_a_dinner"><option ${dData.akita.dinner==='◯'?'selected':''}>◯</option><option ${dData.akita.dinner==='×'?'selected':''}>×</option><option ${dData.akita.dinner==='未定'?'selected':''}>未定</option></select></div>
             `;
 
@@ -932,24 +1008,15 @@
                 <div class="form-group"><label>備考</label><input type="text" id="edit_memo" value="${dData.memo || ''}"></div>
             `;
 
-            let htmlContent = '';
-            if (targetSection === 'all' || targetSection === 'chita') {
-                htmlContent += `<div class="section-divider chita">■ ちーた</div>${chitaFields}`;
-            }
-            if (targetSection === 'all' || targetSection === 'akita') {
-                htmlContent += `<div class="section-divider akita">■ あきた</div>${akitaFields}`;
-            }
-            if (targetSection === 'all' || targetSection === 'menu') {
-                htmlContent += `<div class="section-divider">■ 共通・その他</div>${menuFields}`;
-            }
+            let htmlContent = `<div class="section-divider chita">■ ちーた</div>${chitaFields}<div class="section-divider akita">■ あきた</div>${akitaFields}<div class="section-divider">■ 共通・その他</div>${menuFields}`;
 
             document.getElementById('editModalBody').innerHTML = htmlContent;
             window.editingTargetKey = dKey;
-            window.editingIsHoliday = isHoliday;
-            window.editingTargetSection = targetSection;
+            window.editingIsHoliday = isHol;
             document.getElementById('singleEditModal').classList.add('open');
         }
 
+        // ② 一括編集画面での描画と「特別な休日」チェックボックス対応
         function openBatchModal() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -958,44 +1025,57 @@
             const diffToMonday = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek;
             const monday = new Date(year, month, date + diffToMonday);
 
+            window.batchTargetMonday = monday;
+            renderBatchModalContent();
+        }
+
+        function renderBatchModalContent() {
+            const monday = window.batchTargetMonday;
             let html = '';
             const days = ['月', '火', '水', '木', '金', '土', '日'];
 
             for (let i = 0; i < 7; i++) {
                 const targetD = new Date(monday);
                 targetD.setDate(monday.getDate() + i);
-                const isHoliday = (i >= 5);
                 const dKey = getDataKey(targetD);
-                const dData = sampleData[dKey] || {
-                    chita: { plan: "", returnTime: "", lunch: "未定", dinner: "未定" },
-                    akita: { plan: "", returnTime: "", lunch: "未定", dinner: "未定" },
-                    menu: "", memo: ""
-                };
+                
+                if (!sampleData[dKey]) {
+                    sampleData[dKey] = { chita: {}, akita: {}, menu: "", memo: "" };
+                }
+                const dData = sampleData[dKey];
+                
+                // 元の曜日判定＋手動オーバーライド
+                const baseIsHol = (targetD.getDay() === 0 || targetD.getDay() === 6 || getJapaneseHolidayName(targetD.getFullYear(), targetD.getMonth(), targetD.getDate()) !== null);
+                const isOverrideChecked = dData.isHolidayOverride || (baseIsHol && dData.isHolidayOverride !== false);
+                const holName = getJapaneseHolidayName(targetD.getFullYear(), targetD.getMonth(), targetD.getDate());
 
                 html += `
-                    <div style="font-weight:bold; background:#eee; padding:4px 8px; margin-top:10px; border-radius:3px;">
-                        ${targetD.getMonth() + 1}/${targetD.getDate()} (${days[i]}) ${isHoliday ? '[休日]' : ''}
+                    <div style="display:flex; justify-content:space-between; align-items:center; background:#eee; padding:4px 8px; margin-top:10px; border-radius:3px;">
+                        <span style="font-weight:bold;">${targetD.getMonth() + 1}/${targetD.getDate()} (${days[i]}) ${holName ? `[${holName}]` : ''}</span>
+                        <label style="font-size:11px; cursor:pointer; display:flex; align-items:center; gap:3px;">
+                            <input type="checkbox" id="batch_hol_${dKey}" ${isOverrideChecked ? 'checked' : ''} onchange="toggleBatchHolidayFlag('${dKey}')"> 特別な休日
+                        </label>
                     </div>
                     <div style="padding: 4px 0;">
                         <div style="font-size:10px; color:var(--chita-color); font-weight:bold;">●ちーた</div>
                         <div style="display:flex; gap:3px; margin-bottom:2px;">
                             <input type="text" placeholder="予定" id="batch_${dKey}_c_plan" value="${dData.chita.plan || ''}" style="flex:2; font-size:11px; padding:4px;">
-                            ${isHoliday ? `<input type="text" placeholder="出発" id="batch_${dKey}_c_dep" value="${dData.chita.departTime || ''}" style="flex:1; font-size:11px; padding:4px;">` : ''}
+                            ${isOverrideChecked ? `<input type="text" placeholder="出発" id="batch_${dKey}_c_dep" value="${dData.chita.departTime || ''}" style="flex:1; font-size:11px; padding:4px;">` : ''}
                             <input type="text" placeholder="帰宅" id="batch_${dKey}_c_ret" value="${dData.chita.returnTime || ''}" style="flex:1; font-size:11px; padding:4px;">
                         </div>
                         <div style="display:flex; gap:3px; margin-bottom:4px;">
-                            ${isHoliday ? `<select id="batch_${dKey}_c_lun" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.chita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.chita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.chita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                            ${isOverrideChecked ? `<select id="batch_${dKey}_c_lun" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.chita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.chita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.chita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
                             <select id="batch_${dKey}_c_din" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.chita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.chita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.chita.dinner==='未定'?'selected':''}>夕未定</option></select>
                         </div>
 
                         <div style="font-size:10px; color:var(--akita-color); font-weight:bold;">●あきた</div>
                         <div style="display:flex; gap:3px; margin-bottom:2px;">
                             <input type="text" placeholder="予定" id="batch_${dKey}_a_plan" value="${dData.akita.plan || ''}" style="flex:2; font-size:11px; padding:4px;">
-                            ${isHoliday ? `<input type="text" placeholder="出発" id="batch_${dKey}_a_dep" value="${dData.akita.departTime || ''}" style="flex:1; font-size:11px; padding:4px;">` : ''}
+                            ${isOverrideChecked ? `<input type="text" placeholder="出発" id="batch_${dKey}_a_dep" value="${dData.akita.departTime || ''}" style="flex:1; font-size:11px; padding:4px;">` : ''}
                             <input type="text" placeholder="帰宅" id="batch_${dKey}_a_ret" value="${dData.akita.returnTime || ''}" style="flex:1; font-size:11px; padding:4px;">
                         </div>
                         <div style="display:flex; gap:3px; margin-bottom:4px;">
-                            ${isHoliday ? `<select id="batch_${dKey}_a_lun" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.akita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.akita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.akita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                            ${isOverrideChecked ? `<select id="batch_${dKey}_a_lun" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.akita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.akita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.akita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
                             <select id="batch_${dKey}_a_din" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.akita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.akita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.akita.dinner==='未定'?'selected':''}>夕未定</option></select>
                         </div>
 
@@ -1008,8 +1088,47 @@
             }
 
             document.getElementById('batchEditBody').innerHTML = html;
-            window.batchTargetMonday = monday;
             document.getElementById('batchEditModal').classList.add('open');
+        }
+
+        // チェックボックス変更時に一時保存して再描画
+        function toggleBatchHolidayFlag(dKey) {
+            collectBatchInputValues(); // 現在の入力値を保持
+            const chk = document.getElementById(`batch_hol_${dKey}`);
+            if (!sampleData[dKey]) sampleData[dKey] = { chita: {}, akita: {} };
+            sampleData[dKey].isHolidayOverride = chk.checked;
+            renderBatchModalContent(); // 再描画してフォーム項目を切り替え
+        }
+
+        function collectBatchInputValues() {
+            const monday = window.batchTargetMonday;
+            for (let i = 0; i < 7; i++) {
+                const targetD = new Date(monday);
+                targetD.setDate(monday.getDate() + i);
+                const dKey = getDataKey(targetD);
+                if (!sampleData[dKey]) continue;
+
+                const cPlan = document.getElementById(`batch_${dKey}_c_plan`);
+                if (cPlan) {
+                    const isHol = isHolidayDate(targetD);
+                    sampleData[dKey].chita = {
+                        plan: cPlan.value,
+                        departTime: isHol ? (document.getElementById(`batch_${dKey}_c_dep`)?.value || '') : undefined,
+                        returnTime: document.getElementById(`batch_${dKey}_c_ret`)?.value || '',
+                        lunch: isHol ? (document.getElementById(`batch_${dKey}_c_lun`)?.value || '未定') : undefined,
+                        dinner: document.getElementById(`batch_${dKey}_c_din`)?.value || '未定'
+                    };
+                    sampleData[dKey].akita = {
+                        plan: document.getElementById(`batch_${dKey}_a_plan`)?.value || '',
+                        departTime: isHol ? (document.getElementById(`batch_${dKey}_a_dep`)?.value || '') : undefined,
+                        returnTime: document.getElementById(`batch_${dKey}_a_ret`)?.value || '',
+                        lunch: isHol ? (document.getElementById(`batch_${dKey}_a_lun`)?.value || '未定') : undefined,
+                        dinner: document.getElementById(`batch_${dKey}_a_din`)?.value || '未定'
+                    };
+                    sampleData[dKey].menu = document.getElementById(`batch_${dKey}_menu`)?.value || '';
+                    sampleData[dKey].memo = document.getElementById(`batch_${dKey}_memo`)?.value || '';
+                }
+            }
         }
 
         function closeModal(modalId) {
@@ -1018,37 +1137,30 @@
 
         function saveSingleData() {
             const dKey = window.editingTargetKey;
-            const isHoliday = window.editingIsHoliday;
-            const targetSection = window.editingTargetSection;
+            const isHol = window.editingIsHoliday;
 
             if (!sampleData[dKey]) {
                 sampleData[dKey] = { chita: {}, akita: {}, menu: "", memo: "" };
             }
 
-            if (targetSection === 'all' || targetSection === 'chita') {
-                sampleData[dKey].chita = {
-                    plan: document.getElementById('edit_c_plan').value,
-                    departTime: isHoliday ? document.getElementById('edit_c_depart').value : undefined,
-                    returnTime: document.getElementById('edit_c_return').value,
-                    lunch: isHoliday ? document.getElementById('edit_c_lunch').value : undefined,
-                    dinner: document.getElementById('edit_c_dinner').value
-                };
-            }
+            sampleData[dKey].chita = {
+                plan: document.getElementById('edit_c_plan').value,
+                departTime: isHol ? document.getElementById('edit_c_depart').value : undefined,
+                returnTime: document.getElementById('edit_c_return').value,
+                lunch: isHol ? document.getElementById('edit_c_lunch').value : undefined,
+                dinner: document.getElementById('edit_c_dinner').value
+            };
 
-            if (targetSection === 'all' || targetSection === 'akita') {
-                sampleData[dKey].akita = {
-                    plan: document.getElementById('edit_a_plan').value,
-                    departTime: isHoliday ? document.getElementById('edit_a_depart').value : undefined,
-                    returnTime: document.getElementById('edit_a_return').value,
-                    lunch: isHoliday ? document.getElementById('edit_a_lunch').value : undefined,
-                    dinner: document.getElementById('edit_a_dinner').value
-                };
-            }
+            sampleData[dKey].akita = {
+                plan: document.getElementById('edit_a_plan').value,
+                departTime: isHol ? document.getElementById('edit_a_depart').value : undefined,
+                returnTime: document.getElementById('edit_a_return').value,
+                lunch: isHol ? document.getElementById('edit_a_lunch').value : undefined,
+                dinner: document.getElementById('edit_a_dinner').value
+            };
 
-            if (targetSection === 'all' || targetSection === 'menu') {
-                sampleData[dKey].menu = document.getElementById('edit_menu').value;
-                sampleData[dKey].memo = document.getElementById('edit_memo').value;
-            }
+            sampleData[dKey].menu = document.getElementById('edit_menu').value;
+            sampleData[dKey].memo = document.getElementById('edit_memo').value;
 
             alert('保存しました');
             closeModal('singleEditModal');
@@ -1057,39 +1169,13 @@
         }
 
         function saveBatchData() {
-            const monday = window.batchTargetMonday;
-            for (let i = 0; i < 7; i++) {
-                const targetD = new Date(monday);
-                targetD.setDate(monday.getDate() + i);
-                const isHoliday = (i >= 5);
-                const dKey = getDataKey(targetD);
-
-                sampleData[dKey] = {
-                    chita: {
-                        plan: document.getElementById(`batch_${dKey}_c_plan`).value,
-                        departTime: isHoliday ? document.getElementById(`batch_${dKey}_c_dep`).value : undefined,
-                        returnTime: document.getElementById(`batch_${dKey}_c_ret`).value,
-                        lunch: isHoliday ? document.getElementById(`batch_${dKey}_c_lun`).value : undefined,
-                        dinner: document.getElementById(`batch_${dKey}_c_din`).value
-                    },
-                    akita: {
-                        plan: document.getElementById(`batch_${dKey}_a_plan`).value,
-                        departTime: isHoliday ? document.getElementById(`batch_${dKey}_a_dep`).value : undefined,
-                        returnTime: document.getElementById(`batch_${dKey}_a_ret`).value,
-                        lunch: isHoliday ? document.getElementById(`batch_${dKey}_a_lun`).value : undefined,
-                        dinner: document.getElementById(`batch_${dKey}_a_din`).value
-                    },
-                    menu: document.getElementById(`batch_${dKey}_menu`).value,
-                    memo: document.getElementById(`batch_${dKey}_memo`).value
-                };
-            }
-
+            collectBatchInputValues();
             alert('一括保存しました');
             closeModal('batchEditModal');
             renderWeekView();
         }
 
-        // ② 左右スワイプによる期間変更のリスナー設定
+        // 左右スワイプによる期間変更
         let touchStartX = 0;
         let touchEndX = 0;
         const container = document.getElementById('contentContainer');
