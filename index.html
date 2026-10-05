@@ -387,6 +387,28 @@
         }
         .section-divider.chita { color: var(--chita-color); }
         .section-divider.akita { color: var(--akita-color); }
+                .calendar-cell-summary {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 9px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.2;
+            margin-top: 1px;
+        }
+
+        .calendar-tag {
+            font-weight: bold;
+            padding: 0 2px;
+            border-radius: 2px;
+            font-size: 8px;
+            flex-shrink: 0;
+        }
+        .calendar-tag.chita { background: var(--chita-bg); color: var(--chita-color); }
+        .calendar-tag.akita { background: var(--akita-bg); color: var(--akita-color); }
+
     </style>
 </head>
 <body>
@@ -587,17 +609,23 @@
                     if (!item.isOther) {
                         const dKey = `${item.year}-${item.month + 1}-${item.date}`;
                         const dayData = sampleData[dKey];
-                        let cSummary = "ち: -";
-                        let aSummary = "あ: -";
+                        let cPlan = "-";
+                        let aPlan = "-";
                         if (dayData) {
-                            cSummary = `ち: ${dayData.chita.plan || '-'}`;
-                            aSummary = `あ: ${dayData.akita.plan || '-'}`;
+                            cPlan = dayData.chita.plan || '-';
+                            aPlan = dayData.akita.plan || '-';
                         }
                         cell.onclick = () => openDayDetail(item.year, item.month, item.date);
                         cell.innerHTML = `
                             <div class="day-num">${item.day}</div>
-                            <div class="calendar-cell-summary summary-chita">${cSummary}</div>
-                            <div class="calendar-cell-summary summary-akita">${aSummary}</div>
+                            <div class="calendar-cell-summary">
+                                <span class="calendar-tag chita">ち</span>
+                                <span style="overflow:hidden; text-overflow:ellipsis;">${cPlan}</span>
+                            </div>
+                            <div class="calendar-cell-summary">
+                                <span class="calendar-tag akita">あ</span>
+                                <span style="overflow:hidden; text-overflow:ellipsis;">${aPlan}</span>
+                            </div>
                         `;
                     } else {
                         cell.innerHTML = `<div class="day-num">${item.day}</div>`;
