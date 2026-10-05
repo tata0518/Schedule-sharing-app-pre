@@ -1244,7 +1244,13 @@
             }
         }
 
-        renderMonthView();
+        // 修正：一番下の「renderMonthView();」を以下に書き換えることで、
+        // 起動時に必ずGASからデータを取得してカレンダーを描画するようにします。
+        fetchScheduleData();
+    </script>
+</body>
+</html>
+
     </script>
 </body>
 </html>
