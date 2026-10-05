@@ -135,7 +135,7 @@
             flex: 1;
             gap: 1px;
             background: var(--border-color);
-            min-height: 0; /* flexアイテム内で縮小可能にする */
+            min-height: 0;
         }
 
         .weekday-header-row {
@@ -187,11 +187,9 @@
             -webkit-box-orient: vertical;
             word-break: break-all;
         }
-        /* ちーた・あきたは最大3行 */
         .calendar-cell-summary.person-line {
             -webkit-line-clamp: 3;
         }
-        /* メニューは最大2行 */
         .calendar-cell-summary.menu-line {
             -webkit-line-clamp: 2;
             color: #666;
@@ -267,7 +265,6 @@
         .person-tag.chita { background: var(--chita-bg); color: var(--chita-color); }
         .person-tag.akita { background: var(--akita-bg); color: var(--akita-color); }
 
-        /* インライン編集用フォームパーツ */
         .inline-input {
             padding: 2px 4px;
             border: 1px solid var(--border-color);
@@ -378,7 +375,7 @@
             -webkit-overflow-scrolling: touch;
             flex: 1;
             font-size: 12px;
-            overflow-x: hidden; /* 横スクロールを完全防止 */
+            overflow-x: hidden;
         }
 
         .modal-footer {
@@ -459,28 +456,22 @@
                     <div class="weekday-header">土</div>
                     <div class="weekday-header">日</div>
                 </div>
-                <div class="month-grid-wrapper" id="monthGridWrapper">
-                    <!-- カレンダーの週行がJSで動的生成されます -->
-                </div>
+                <div class="month-grid-wrapper" id="monthGridWrapper"></div>
             </div>
 
             <!-- 週表示タブ -->
             <div id="tabWeek" class="tab-pane">
-                <div class="week-container" id="weekContainer">
-                    <!-- 週の各日行がJSで動的生成されます -->
-                </div>
+                <div class="week-container" id="weekContainer"></div>
             </div>
         </div>
 
         <!-- 下部タブバー -->
         <nav class="tab-bar">
             <a class="tab-item active" onclick="switchTab('month')">
-                <span class="tab-icon">📅</span>
-                月表示
+                <span class="tab-icon">📅</span>月表示
             </a>
             <a class="tab-item" onclick="switchTab('week')">
-                <span class="tab-icon">📋</span>
-                週表示
+                <span class="tab-icon">📋</span>週表示
             </a>
         </nav>
     </div>
@@ -531,11 +522,9 @@
         let currentTab = 'month';
         let currentDate = new Date(2026, 9, 5);
         let isInlineEditing = false;
-
-        // ① サンプルデータを空にして、スプレッドシートから読み込むようにする
         let sampleData = {};
 
-        // 【要設定】先ほどデプロイしたGASの「ウェブアプリのURL」をここに貼り付けてください
+        // 設定済みのGASのウェブアプリURL
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwhj2YLitUN_ATOhOCn8b259voiOsEfyM-Nj2Tz8_qLL63lXgwwPBM6mvNkaek5hMuBDA/exec";
 
         // 起動時にデータを取得する関数
@@ -544,7 +533,11 @@
                 const response = await fetch(GAS_API_URL);
                 const data = await response.json();
                 sampleData = data;
-                renderMonthView(); // データ取得後に再描画
+                if (currentTab === 'month') {
+                    renderMonthView();
+                } else {
+                    renderWeekView();
+                }
             } catch (error) {
                 console.error("データの取得に失敗しました:", error);
                 alert("データの読み込みに失敗しました。");
@@ -556,7 +549,7 @@
             try {
                 await fetch(GAS_API_URL, {
                     method: "POST",
-                    mode: "no-cors", // GASのCORS制限を回避するため
+                    mode: "no-cors",
                     headers: {
                         "Content-Type": "application/json",
                     },
@@ -566,64 +559,6 @@
                 console.error("データの保存に失敗しました:", error);
             }
         }
-
-        // ----------------------------
-        // （中略：祝日判定やタブ切り替えなどの既存関数はそのまま）
-        // ----------------------------
-
-        function saveSingleData() {
-            const dKey = window.editingTargetKey;
-            const isHol = window.editingIsHoliday;
-
-            if (!sampleData[dKey]) {
-                sampleData[dKey] = { chita: {}, akita: {}, menu: "", memo: "" };
-            }
-
-            sampleData[dKey].chita = {
-                plan: document.getElementById('edit_c_plan').value,
-                departTime: isHol ? document.getElementById('edit_c_depart').value : undefined,
-                returnTime: document.getElementById('edit_c_return').value,
-                lunch: isHol ? document.getElementById('edit_c_lunch').value : undefined,
-                dinner: document.getElementById('edit_c_dinner').value
-            };
-
-            sampleData[dKey].akita = {
-                plan: document.getElementById('edit_a_plan').value,
-                departTime: isHol ? document.getElementById('edit_a_depart').value : undefined,
-                returnTime: document.getElementById('edit_a_return').value,
-                lunch: isHol ? document.getElementById('edit_a_lunch').value : undefined,
-                dinner: document.getElementById('edit_a_dinner').value
-            };
-
-            sampleData[dKey].menu = document.getElementById('edit_menu').value;
-            sampleData[dKey].memo = document.getElementById('edit_memo').value;
-
-            // ② 単体保存時にスプレッドシートへ送信
-            postScheduleData();
-
-            alert('保存しました');
-            closeModal('singleEditModal');
-            if (currentTab === 'month') renderMonthView();
-            else renderWeekView();
-        }
-
-        function saveBatchData() {
-            collectBatchInputValues();
-            
-            // ③ 一括保存時にスプレッドシートへ送信
-            postScheduleData();
-
-            alert('一括保存しました');
-            closeModal('batchEditModal');
-            renderWeekView();
-        }
-
-        // ----------------------------
-        // （中略：スワイプ処理などの既存コード）
-        // ----------------------------
-
-        // ページの初期化部分（一番下の renderMonthView(); をこれに書き換え）
-        fetchScheduleData();
 
         function getJapaneseHolidayName(year, month, day) {
             const m = month + 1;
@@ -727,6 +662,7 @@
             } else {
                 saveInlineData();
                 btn.innerText = '部分編集';
+                postScheduleData();
             }
             renderWeekView();
         }
@@ -783,8 +719,8 @@
                         let aPlan = "";
                         let menuText = "";
                         if (dayData) {
-                            cPlan = dayData.chita.plan ? `ち:${dayData.chita.plan}` : '';
-                            aPlan = dayData.akita.plan ? `あ:${dayData.akita.plan}` : '';
+                            cPlan = dayData.chita && dayData.chita.plan ? `ち:${dayData.chita.plan}` : '';
+                            aPlan = dayData.akita && dayData.akita.plan ? `あ:${dayData.akita.plan}` : '';
                             menuText = dayData.menu ? `メ:${dayData.menu}` : '';
                         }
 
@@ -848,11 +784,11 @@
                 let rowInnerHtml = '';
 
                 if (!isInlineEditing) {
-                    let chitaText = dData.chita.plan ? `${dData.chita.plan} / 帰:${dData.chita.returnTime || '-'} / 夕:${dData.chita.dinner || '-'}` : '未登録';
-                    let akitaText = dData.akita.plan ? `${dData.akita.plan} / 帰:${dData.akita.returnTime || '-'} / 夕:${dData.akita.dinner || '-'}` : '未登録';
+                    let chitaText = dData.chita && dData.chita.plan ? `${dData.chita.plan} / 帰:${dData.chita.returnTime || '-'} / 夕:${dData.chita.dinner || '-'}` : '未登録';
+                    let akitaText = dData.akita && dData.akita.plan ? `${dData.akita.plan} / 帰:${dData.akita.returnTime || '-'} / 夕:${dData.akita.dinner || '-'}` : '未登録';
                     if (isHol) {
-                        chitaText = `${dData.chita.plan} / 出:${dData.chita.departTime || '-'} 帰:${dData.chita.returnTime || '-'} / 昼:${dData.chita.lunch || '-'} 夕:${dData.chita.dinner || '-'}`;
-                        akitaText = `${dData.akita.plan} / 出:${dData.akita.departTime || '-'} 帰:${dData.akita.returnTime || '-'} / 昼:${dData.akita.lunch || '-'} 夕:${dData.akita.dinner || '-'}`;
+                        chitaText = `${dData.chita.plan || ''} / 出:${dData.chita.departTime || '-'} 帰:${dData.chita.returnTime || '-'} / 昼:${dData.chita.lunch || '-'} 夕:${dData.chita.dinner || '-'}`;
+                        akitaText = `${dData.akita.plan || ''} / 出:${dData.akita.departTime || '-'} 帰:${dData.akita.returnTime || '-'} / 昼:${dData.akita.lunch || '-'} 夕:${dData.akita.dinner || '-'}`;
                     }
 
                     rowInnerHtml = `
@@ -876,17 +812,17 @@
                         </div>
                     `;
                 } else {
-                    const cPlan = dData.chita.plan || '';
-                    const cDep = dData.chita.departTime || '';
-                    const cRet = dData.chita.returnTime || '';
-                    const cLun = dData.chita.lunch || '未定';
-                    const cDin = dData.chita.dinner || '◯';
+                    const cPlan = dData.chita && dData.chita.plan ? dData.chita.plan : '';
+                    const cDep = dData.chita && dData.chita.departTime ? dData.chita.departTime : '';
+                    const cRet = dData.chita && dData.chita.returnTime ? dData.chita.returnTime : '';
+                    const cLun = dData.chita && dData.chita.lunch ? dData.chita.lunch : '未定';
+                    const cDin = dData.chita && dData.chita.dinner ? dData.chita.dinner : '◯';
 
-                    const aPlan = dData.akita.plan || '';
-                    const aDep = dData.akita.departTime || '';
-                    const aRet = dData.akita.returnTime || '';
-                    const aLun = dData.akita.lunch || '未定';
-                    const aDin = dData.akita.dinner || '×';
+                    const aPlan = dData.akita && dData.akita.plan ? dData.akita.plan : '';
+                    const aDep = dData.akita && dData.akita.departTime ? dData.akita.departTime : '';
+                    const aRet = dData.akita && dData.akita.returnTime ? dData.akita.returnTime : '';
+                    const aLun = dData.akita && dData.akita.lunch ? dData.akita.lunch : '未定';
+                    const aDin = dData.akita && dData.akita.dinner ? dData.akita.dinner : '×';
 
                     const menuVal = dData.menu || '';
 
@@ -991,14 +927,14 @@
 
             document.getElementById('detailModalTitle').innerText = `${m + 1}月${d}日(${['日','月','火','水','木','金','土'][targetD.getDay()]})${titleExtra} の詳細`;
             
-            let chitaHtml = `<div>予定: ${dData.chita.plan}</div><div>帰宅時刻: ${dData.chita.returnTime}</div>`;
-            let akitaHtml = `<div>予定: ${dData.akita.plan}</div><div>帰宅時刻: ${dData.akita.returnTime}</div>`;
+            let chitaHtml = `<div>予定: ${dData.chita.plan || '-'}</div><div>帰宅時刻: ${dData.chita.returnTime || '-'}</div>`;
+            let akitaHtml = `<div>予定: ${dData.akita.plan || '-'}</div><div>帰宅時刻: ${dData.akita.returnTime || '-'}</div>`;
             if(isHol) {
-                chitaHtml = `<div>予定: ${dData.chita.plan}</div><div>出発: ${dData.chita.departTime||'-'} / 帰宅: ${dData.chita.returnTime||'-'}</div><div>昼食: ${dData.chita.lunch||'-'} / 夕食: ${dData.chita.dinner||'-'}</div>`;
-                akitaHtml = `<div>予定: ${dData.akita.plan}</div><div>出発: ${dData.akita.departTime||'-'} / 帰宅: ${dData.akita.returnTime||'-'}</div><div>昼食: ${dData.akita.lunch||'-'} / 夕食: ${dData.akita.dinner||'-'}</div>`;
+                chitaHtml = `<div>予定: ${dData.chita.plan || '-'}</div><div>出発: ${dData.chita.departTime||'-'} / 帰宅: ${dData.chita.returnTime||'-'}</div><div>昼食: ${dData.chita.lunch||'-'} / 夕食: ${dData.chita.dinner||'-'}</div>`;
+                akitaHtml = `<div>予定: ${dData.akita.plan || '-'}</div><div>出発: ${dData.akita.departTime||'-'} / 帰宅: ${dData.akita.returnTime||'-'}</div><div>昼食: ${dData.akita.lunch||'-'} / 夕食: ${dData.akita.dinner||'-'}</div>`;
             } else {
-                chitaHtml += `<div>夕食要否: ${dData.chita.dinner}</div>`;
-                akitaHtml += `<div>夕食要否: ${dData.akita.dinner}</div>`;
+                chitaHtml += `<div>夕食要否: ${dData.chita.dinner || '-'}</div>`;
+                akitaHtml += `<div>夕食要否: ${dData.akita.dinner || '-'}</div>`;
             }
 
             document.getElementById('detailModalBody').innerHTML = `
@@ -1099,7 +1035,6 @@
                 const isOverrideChecked = dData.isHolidayOverride || (baseIsHol && dData.isHolidayOverride !== false);
                 const holName = getJapaneseHolidayName(targetD.getFullYear(), targetD.getMonth(), targetD.getDate());
 
-                /* 休日時は項目が増えるため、幅を完全に固定・スリム化してはみ出さないように調整 */
                 html += `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:#eee; padding:4px 8px; margin-top:10px; border-radius:3px;">
                         <span style="font-weight:bold;">${targetD.getMonth() + 1}/${targetD.getDate()} (${days[i]}) ${holName ? `[${holName}]` : ''}</span>
@@ -1208,7 +1143,6 @@
             sampleData[dKey].menu = document.getElementById('edit_menu').value;
             sampleData[dKey].memo = document.getElementById('edit_memo').value;
         
-            // ★ ここにスプレッドシートへの送信処理を追加
             postScheduleData();
         
             alert('保存しました');
@@ -1219,15 +1153,12 @@
 
         function saveBatchData() {
             collectBatchInputValues();
-    
-            // ★ ここにスプレッドシートへの送信処理を追加
             postScheduleData();
         
             alert('一括保存しました');
             closeModal('batchEditModal');
             renderWeekView();
         }
-
 
         let touchStartX = 0;
         let touchEndX = 0;
@@ -1252,13 +1183,8 @@
             }
         }
 
-        // 修正：一番下の「renderMonthView();」を以下に書き換えることで、
-        // 起動時に必ずGASからデータを取得してカレンダーを描画するようにします。
+        // アプリ起動時のデータ取得
         fetchScheduleData();
-    </script>
-</body>
-</html>
-
     </script>
 </body>
 </html>
