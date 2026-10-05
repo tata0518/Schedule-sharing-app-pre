@@ -837,8 +837,8 @@
 
                 const dKey = getDataKey(targetD);
                 const dData = sampleData[dKey] || {
-                    chita: { plan: "在宅", returnTime: "◯", lunch: "未定", dinner: "◯" },
-                    akita: { plan: "出社", returnTime: "19:00", lunch: "未定", dinner: "×" },
+                    chita: { plan: "", returnTime: "", lunch: "", dinner: "" },
+                    akita: { plan: "", returnTime: "", lunch: "", dinner: "" },
                     menu: ""
                 };
 
@@ -848,8 +848,8 @@
                 let rowInnerHtml = '';
 
                 if (!isInlineEditing) {
-                    let chitaText = `${dData.chita.plan} / 帰:${dData.chita.returnTime || '◯'} / 夕:${dData.chita.dinner || '◯'}`;
-                    let akitaText = `${dData.akita.plan} / 帰:${dData.akita.returnTime || '19:00'} / 夕:${dData.akita.dinner || '×'}`;
+                    let chitaText = dData.chita.plan ? `${dData.chita.plan} / 帰:${dData.chita.returnTime || '-'} / 夕:${dData.chita.dinner || '-'}` : '未登録';
+                    let akitaText = dData.akita.plan ? `${dData.akita.plan} / 帰:${dData.akita.returnTime || '-'} / 夕:${dData.akita.dinner || '-'}` : '未登録';
                     if (isHol) {
                         chitaText = `${dData.chita.plan} / 出:${dData.chita.departTime || '-'} 帰:${dData.chita.returnTime || '-'} / 昼:${dData.chita.lunch || '-'} 夕:${dData.chita.dinner || '-'}`;
                         akitaText = `${dData.akita.plan} / 出:${dData.akita.departTime || '-'} 帰:${dData.akita.returnTime || '-'} / 昼:${dData.akita.lunch || '-'} 夕:${dData.akita.dinner || '-'}`;
@@ -1180,15 +1180,15 @@
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('open');
         }
-
+        
         function saveSingleData() {
             const dKey = window.editingTargetKey;
             const isHol = window.editingIsHoliday;
-
+        
             if (!sampleData[dKey]) {
                 sampleData[dKey] = { chita: {}, akita: {}, menu: "", memo: "" };
             }
-
+        
             sampleData[dKey].chita = {
                 plan: document.getElementById('edit_c_plan').value,
                 departTime: isHol ? document.getElementById('edit_c_depart').value : undefined,
@@ -1196,7 +1196,7 @@
                 lunch: isHol ? document.getElementById('edit_c_lunch').value : undefined,
                 dinner: document.getElementById('edit_c_dinner').value
             };
-
+        
             sampleData[dKey].akita = {
                 plan: document.getElementById('edit_a_plan').value,
                 departTime: isHol ? document.getElementById('edit_a_depart').value : undefined,
@@ -1204,10 +1204,13 @@
                 lunch: isHol ? document.getElementById('edit_a_lunch').value : undefined,
                 dinner: document.getElementById('edit_a_dinner').value
             };
-
+        
             sampleData[dKey].menu = document.getElementById('edit_menu').value;
             sampleData[dKey].memo = document.getElementById('edit_memo').value;
-
+        
+            // ★ ここにスプレッドシートへの送信処理を追加
+            postScheduleData();
+        
             alert('保存しました');
             closeModal('singleEditModal');
             if (currentTab === 'month') renderMonthView();
@@ -1216,10 +1219,15 @@
 
         function saveBatchData() {
             collectBatchInputValues();
+    
+            // ★ ここにスプレッドシートへの送信処理を追加
+            postScheduleData();
+        
             alert('一括保存しました');
             closeModal('batchEditModal');
             renderWeekView();
         }
+
 
         let touchStartX = 0;
         let touchEndX = 0;
