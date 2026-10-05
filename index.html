@@ -21,12 +21,13 @@
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation; /* ダブルタップによるズームを防止 */
         }
 
-        /* 画面全体を固定してスクロールさせない設計 */
         html, body {
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             overflow: hidden;
             background-color: var(--bg-color);
             color: var(--text-color);
@@ -40,7 +41,7 @@
             height: 100dvh;
         }
 
-        /* ヘッダーエリア */
+        /* ヘッダー */
         header {
             display: flex;
             justify-content: space-between;
@@ -68,7 +69,7 @@
         }
 
         .current-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
         }
 
@@ -78,7 +79,7 @@
             border-color: #333 !important;
         }
 
-        /* メインコンテンツエリア */
+        /* メインコンテンツ */
         .content-container {
             flex: 1;
             position: relative;
@@ -93,36 +94,50 @@
             height: 100%;
             display: none;
             flex-direction: column;
-            padding: 8px;
+            padding: 6px;
         }
 
         .tab-pane.active {
             display: flex;
         }
 
-        /* 月表示（カレンダー） */
-        .month-grid {
+        /* ① 月表示（カレンダー）の修正 */
+        .month-grid-wrapper {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            background: var(--border-color);
+            gap: 1px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .month-week-row {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
-            grid-template-rows: auto repeat(6, 1fr);
             flex: 1;
-            gap: 2px;
+            gap: 1px;
+            background: var(--border-color);
         }
 
-        .weekday-header {
-            text-align: center;
+        .weekday-header-row {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: #fff;
             font-size: 11px;
             font-weight: bold;
-            padding: 2px 0;
+            text-align: center;
+            padding: 4px 0;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
         }
 
-        .weekday-header:nth-child(6) { color: #1976d2; }
-        .weekday-header:nth-child(7) { color: #d32f2f; }
+        .weekday-header:nth-child(6) { color: var(--akita-color); }
+        .weekday-header:nth-child(7) { color: var(--chita-color); }
 
         .calendar-cell {
             background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 4px;
             padding: 2px;
             display: flex;
             flex-direction: column;
@@ -133,8 +148,8 @@
         }
 
         .calendar-cell.other-month {
-            background: #fafafa;
-            color: #aaa;
+            background: #f9f9f9;
+            color: #bbb;
         }
 
         .calendar-cell .day-num {
@@ -154,13 +169,13 @@
         .summary-chita { color: var(--chita-color); }
         .summary-akita { color: var(--akita-color); }
 
-        /* 週表示 */
+        /* ② 週表示 */
         .week-container {
             display: flex;
             flex-direction: column;
             flex: 1;
             gap: 3px;
-            overflow: hidden;
+            overflow-y: auto;
         }
 
         .week-row {
@@ -168,12 +183,12 @@
             background: #fff;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            flex: 1;
-            overflow: hidden;
+            min-height: 52px;
+            flex-shrink: 0;
         }
 
         .week-date-col {
-            width: 65px;
+            width: 55px;
             background: #eee;
             display: flex;
             flex-direction: column;
@@ -184,6 +199,8 @@
             border-right: 1px solid var(--border-color);
             flex-shrink: 0;
         }
+        .week-date-col.sat { color: var(--akita-color); }
+        .week-date-col.sun { color: var(--chita-color); }
 
         .week-data-col {
             flex: 1;
@@ -198,14 +215,18 @@
         .person-row {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .person-tag {
             font-weight: bold;
-            padding: 0 4px;
+            padding: 0 3px;
             border-radius: 2px;
             font-size: 9px;
+            flex-shrink: 0;
         }
         .person-tag.chita { background: var(--chita-bg); color: var(--chita-color); }
         .person-tag.akita { background: var(--akita-bg); color: var(--akita-color); }
@@ -217,6 +238,7 @@
             justify-content: center;
             border-left: 1px solid #eee;
             background: #fafafa;
+            flex-shrink: 0;
         }
 
         .week-edit-btn-col button {
@@ -259,13 +281,14 @@
             margin-bottom: 2px;
         }
 
-        /* ポップアップ共通 */
+        /* ⑤ 修正：ポップアップのスクロール改善 */
         .modal-overlay {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             background: rgba(0,0,0,0.5);
             display: none;
             justify-content: center;
@@ -279,9 +302,9 @@
 
         .modal-content {
             background: #fff;
-            width: 90%;
-            max-width: 380px;
-            max-height: 85vh;
+            width: 92%;
+            max-width: 400px;
+            height: 85vh; /* 固定高さを持たせて確実に内部スクロールさせる */
             border-radius: 8px;
             display: flex;
             flex-direction: column;
@@ -296,6 +319,7 @@
             padding: 10px 14px;
             border-bottom: 1px solid var(--border-color);
             font-weight: bold;
+            flex-shrink: 0;
         }
 
         .close-btn {
@@ -304,11 +328,14 @@
             font-size: 18px;
             cursor: pointer;
             color: #555;
+            padding: 4px;
         }
 
         .modal-body {
             padding: 12px;
             overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            flex: 1;
             font-size: 12px;
         }
 
@@ -318,9 +345,11 @@
             display: flex;
             justify-content: flex-end;
             gap: 8px;
+            flex-shrink: 0;
+            background: #fff;
         }
 
-        /* フォーム要素 */
+        /* フォーム要素 (ズーム防止のためフォントサイズ16pxにせず、タッチ操作最適化) */
         .form-group {
             margin-bottom: 10px;
         }
@@ -330,6 +359,7 @@
             font-weight: bold;
             margin-bottom: 3px;
             font-size: 11px;
+            color: #555;
         }
 
         .form-group input, .form-group select {
@@ -337,11 +367,12 @@
             padding: 6px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 13px;
+            background: #fff;
         }
 
         .section-divider {
-            margin: 10px 0 6px 0;
+            margin: 12px 0 6px 0;
             border-bottom: 2px dashed #eee;
             font-weight: bold;
             font-size: 11px;
@@ -361,30 +392,31 @@
                 <button onclick="changePeriod(1)">▶︎</button>
             </div>
             <div class="current-title" id="currentTitle">2026年 10月</div>
-            <button class="batch-btn" onclick="openBatchModal()">一括編集</button>
+            <button class="batch-btn" id="batchBtn" onclick="openBatchModal()">一括編集</button>
         </header>
 
         <!-- メインコンテンツ -->
         <div class="content-container">
             <!-- ① 月表示タブ -->
             <div id="tabMonth" class="tab-pane active">
-                <div class="month-grid" id="monthGrid">
-                    <!-- 曜日ヘッダー -->
+                <div class="weekday-header-row">
                     <div class="weekday-header">月</div>
                     <div class="weekday-header">火</div>
                     <div class="weekday-header">水</div>
                     <div class="weekday-header">木</div>
                     <div class="weekday-header">金</div>
-                    <div class="weekday-header" style="color:var(--akita-color)">土</div>
-                    <div class="weekday-header" style="color:var(--chita-color)">日</div>
-                    <!-- カレンダーの日付セルはJSで動的生成 -->
+                    <div class="weekday-header">土</div>
+                    <div class="weekday-header">日</div>
+                </div>
+                <div class="month-grid-wrapper" id="monthGridWrapper">
+                    <!-- カレンダーの週行がJSで動的生成されます -->
                 </div>
             </div>
 
             <!-- ② 週表示タブ -->
             <div id="tabWeek" class="tab-pane">
                 <div class="week-container" id="weekContainer">
-                    <!-- 週の各曜日の行はJSで動的生成 -->
+                    <!-- 週の各日行がJSで動的生成されます -->
                 </div>
             </div>
         </div>
@@ -406,12 +438,10 @@
     <div class="modal-overlay" id="dayDetailModal">
         <div class="modal-content">
             <div class="modal-header">
-                <span id="detailModalTitle">10月5日(月) の詳細</span>
+                <span id="detailModalTitle">詳細</span>
                 <button class="close-btn" onclick="closeModal('dayDetailModal')">×</button>
             </div>
-            <div class="modal-body" id="detailModalBody">
-                <!-- ちーた・あきたの情報 -->
-            </div>
+            <div class="modal-body" id="detailModalBody"></div>
             <div class="modal-footer">
                 <button onclick="openEditFromDetail()">編集する</button>
             </div>
@@ -425,9 +455,7 @@
                 <span id="editModalTitle">予定の編集</span>
                 <button class="close-btn" onclick="closeModal('singleEditModal')">×</button>
             </div>
-            <div class="modal-body" id="editModalBody">
-                <!-- 入力フォーム -->
-            </div>
+            <div class="modal-body" id="editModalBody"></div>
             <div class="modal-footer">
                 <button onclick="closeModal('singleEditModal')">キャンセル</button>
                 <button class="batch-btn" onclick="saveSingleData()">保存</button>
@@ -435,16 +463,14 @@
         </div>
     </div>
 
-    <!-- 一括編集ポップアップ -->
+    <!-- ④ 一括編集ポップアップ（全項目対応・初期値反映） -->
     <div class="modal-overlay" id="batchEditModal">
-        <div class="modal-content" style="max-height: 90vh;">
+        <div class="modal-content">
             <div class="modal-header">
-                <span>1週間分の一括編集</span>
+                <span id="batchModalTitle">1週間分の一括編集</span>
                 <button class="close-btn" onclick="closeModal('batchEditModal')">×</button>
             </div>
-            <div class="modal-body" id="batchEditBody">
-                <!-- 1週間分のフォーム -->
-            </div>
+            <div class="modal-body" id="batchEditBody"></div>
             <div class="modal-footer">
                 <button onclick="closeModal('batchEditModal')">キャンセル</button>
                 <button class="batch-btn" onclick="saveBatchData()">一括保存</button>
@@ -454,7 +480,31 @@
 
     <script>
         let currentTab = 'month';
-        let currentDate = new Date(2026, 9, 5); // 2026年10月5日を初期値
+        let currentDate = new Date(2026, 9, 5); // 2026年10月5日基準
+
+        // サンプルデータ構造 (実際はGAS/スプレッドシートから取得)
+        let sampleData = {
+            "2026-10-5": {
+                chita: { plan: "在宅", returnTime: "◯", dinner: "◯" },
+                akita: { plan: "出社", returnTime: "19:00", dinner: "×" },
+                menu: "タコスサラダ", memo: "特になし"
+            },
+            "2026-10-10": {
+                chita: { plan: "夏休み", returnTime: "0:00", dinner: "×" },
+                akita: { plan: "飲み会", returnTime: "23:00", dinner: "×" },
+                menu: "カレー", memo: ""
+            },
+            "2026-10-11": { // 休日（土）
+                isHoliday: true,
+                chita: { plan: "予定", departTime: "10:00", returnTime: "18:00", lunch: "◯", dinner: "◯" },
+                akita: { plan: "予定", departTime: "予定なし", returnTime: "17:00", lunch: "×", dinner: "◯" },
+                menu: "外食", memo: "ジム行く"
+            }
+        };
+
+        function getDataKey(dateObj) {
+            return `${dateObj.getFullYear()}-${dateObj.getMonth() + 1}-${dateObj.getDate()}`;
+        }
 
         // タブ切り替え
         function switchTab(tab) {
@@ -462,17 +512,22 @@
             document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
             
+            const batchBtn = document.getElementById('batchBtn');
+
             if (tab === 'month') {
                 document.getElementById('tabMonth').classList.add('active');
                 document.querySelectorAll('.tab-item')[0].classList.add('active');
+                batchBtn.style.display = 'none'; // ① 月表示では一括編集不要のため非表示
                 renderMonthView();
             } else {
                 document.getElementById('tabWeek').classList.add('active');
                 document.querySelectorAll('.tab-item')[1].classList.add('active');
+                batchBtn.style.display = 'block';
                 renderWeekView();
             }
         }
 
+        // ① 遷移ボタンの修正（月・週の切り替えを確実に動作させる）
         function changePeriod(direction) {
             if (currentTab === 'month') {
                 currentDate.setMonth(currentDate.getMonth() + direction);
@@ -489,63 +544,73 @@
             else renderWeekView();
         }
 
-        // 月表示の描画
+        // ① 月表示の描画（日付の枠・グリッドを正しく表示）
         function renderMonthView() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
-            document.getElementById('currentTitleinnerText' || 'currentTitle').innerText = `${year}年 ${month + 1}月`;
+            document.getElementById('currentTitle').innerText = `${year}年 ${month + 1}月`;
 
-            const grid = document.getElementById('monthGrid');
-            // ヘッダーを残してセルをクリア
-            const headers = grid.querySelectorAll('.weekday-header');
-            grid.innerHTML = '';
-            headers.forEach(h => grid.appendChild(h));
+            const wrapper = document.getElementById('monthGridWrapper');
+            wrapper.innerHTML = '';
 
-            // 月初めの曜日調整 (月曜始まり: 0=月, 6=日)
             let firstDay = new Date(year, month, 1).getDay();
-            firstDay = (firstDay === 0) ? 6 : firstDay - 1;
+            firstDay = (firstDay === 0) ? 6 : firstDay - 1; // 月曜始まり
 
             const lastDate = new Date(year, month + 1, 0).getDate();
             const prevLastDate = new Date(year, month, 0).getDate();
 
+            let daysArray = [];
+
             // 前月の余白
             for (let i = firstDay - 1; i >= 0; i--) {
-                const cell = createCellElement(prevLastDate - i, true);
-                grid.appendChild(cell);
+                daysArray.push({ day: prevLastDate - i, isOther: true });
             }
-
-            // 当月の日付
+            // 当月
             for (let d = 1; d <= lastDate; d++) {
-                const cell = createCellElement(d, false, year, month, d);
-                grid.appendChild(cell);
+                daysArray.push({ day: d, isOther: false, year: year, month: month, date: d });
+            }
+            // 翌月の余白（合計が35または42マスになるように調整）
+            const totalCellsNeeded = daysArray.length <= 35 ? 35 : 42;
+            let nextMonthDay = 1;
+            while (daysArray.length < totalCellsNeeded) {
+                daysArray.push({ day: nextMonthDay++, isOther: true });
             }
 
-            // 翌月の余白（最大6行＝42マスに満たない分）
-            const totalCells = grid.children.length - 7;
-            const remaining = (totalCells <= 35) ? (35 - totalCells) : (42 - totalCells);
-            for (let d = 1; d <= remaining; d++) {
-                const cell = createCellElement(d, true);
-                grid.appendChild(cell);
+            // 週単位（7日ごと）に分割して行を生成
+            for (let i = 0; i < daysArray.length; i += 7) {
+                const weekRow = document.createElement('div');
+                weekRow.className = 'month-week-row';
+                
+                for (let j = 0; j < 7; j++) {
+                    const item = daysArray[i + j];
+                    const cell = document.createElement('div');
+                    cell.className = `calendar-cell ${item.isOther ? 'other-month' : ''}`;
+                    
+                    if (!item.isOther) {
+                        const dKey = `${item.year}-${item.month + 1}-${item.date}`;
+                        const dayData = sampleData[dKey];
+                        let cSummary = "ち: -";
+                        let aSummary = "あ: -";
+                        if (dayData) {
+                            cSummary = `ち: ${dayData.chita.plan || '-'}`;
+                            aSummary = `あ: ${dayData.akita.plan || '-'}`;
+                        }
+                        cell.onclick = () => openDayDetail(item.year, item.month, item.date);
+                        cell.innerHTML = `
+                            <div class="day-num">${item.day}</div>
+                            <div class="calendar-cell-summary summary-chita">${cSummary}</div>
+                            <div class="calendar-cell-summary summary-akita">${aSummary}</div>
+                        `;
+                    } else {
+                        cell.innerHTML = `<div class="day-num">${item.day}</div>`;
+                    }
+                    weekRow.appendChild(cell);
+                }
+                wrapper.appendChild(weekRow);
             }
         }
 
-        function createCellElement(dayNum, isOtherMonth, year, month, date) {
-            const div = document.createElement('div');
-            div.className = `calendar-cell ${isOtherMonth ? 'other-month' : ''}`;
-            if (!isOtherMonth) {
-                div.onclick = () => openDayDetail(year, month, date);
-                div.innerHTML = `
-                    <div class="day-num">${dayNum}</div>
-                    <div class="calendar-cell-summary summary-chita">ち: 在宅/◯</div>
-                    <div class="calendar-cell-summary summary-akita">あ: 出社/19:00</div>
-                `;
-            } else {
-                div.innerHTML = `<div class="day-num">${dayNum}</div>`;
-            }
-            return div;
-        }
-
-        // 週表示の描画
+        // ③ 週表示の描画（休日には昼食項目も含めて表示）
         function renderWeekView() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -567,24 +632,42 @@
             for (let i = 0; i < 7; i++) {
                 const targetD = new Date(monday);
                 targetD.setDate(monday.getDate() + i);
+                const isSat = (i === 5);
+                const isSun = (i === 6);
+                const isHoliday = isSat || isSun;
+
+                const dKey = getDataKey(targetD);
+                const dData = sampleData[dKey] || {
+                    chita: { plan: "在宅", returnTime: "◯", lunch: "未定", dinner: "◯" },
+                    akita: { plan: "出社", returnTime: "19:00", lunch: "未定", dinner: "×" },
+                    menu: ""
+                };
 
                 const row = document.createElement('div');
                 row.className = 'week-row';
+
+                let chitaText = `${dData.chita.plan} / 帰:${dData.chita.returnTime || '◯'} / 夕:${dData.chita.dinner || '◯'}`;
+                let akitaText = `${dData.akita.plan} / 帰:${dData.akita.returnTime || '19:00'} / 夕:${dData.akita.dinner || '×'}`;
+                if (isHoliday) {
+                    chitaText = `${dData.chita.plan} / 出:${dData.chita.departTime || '-'} 帰:${dData.chita.returnTime || '-'} / 昼:${dData.chita.lunch || '-'} 夕:${dData.chita.dinner || '-'}`;
+                    akitaText = `${dData.akita.plan} / 出:${dData.akita.departTime || '-'} 帰:${dData.akita.returnTime || '-'} / 昼:${dData.akita.lunch || '-'} 夕:${dData.akita.dinner || '-'}`;
+                }
+
                 row.innerHTML = `
-                    <div class="week-date-col">
+                    <div class="week-date-col ${isSat?'sat':''} ${isSun?'sun':''}">
                         <span>${targetD.getMonth() + 1}/${targetD.getDate()}</span>
                         <span>(${days[i]})</span>
                     </div>
                     <div class="week-data-col">
                         <div class="person-row">
                             <span class="person-tag chita">ちーた</span>
-                            <span>在宅 / 帰宅:◯ / 夕食:◯</span>
+                            <span>${chitaText}</span>
                         </div>
                         <div class="person-row">
                             <span class="person-tag akita">あきた</span>
-                            <span>出社 / 帰宅:19:00 / 夕食:×</span>
+                            <span>${akitaText}</span>
                         </div>
-                        <div style="font-size:9px; color:#666;">夕食メニュー: タコスサラダ</div>
+                        <div style="font-size:9px; color:#666;">メニュー: ${dData.menu || '未設定'}</div>
                     </div>
                     <div class="week-edit-btn-col">
                         <button onclick="openSingleEdit(${targetD.getFullYear()}, ${targetD.getMonth()}, ${targetD.getDate()})">✏️</button>
@@ -594,69 +677,157 @@
             }
         }
 
-        // モーダル制御
+        // ポップアップ制御
         function openDayDetail(y, m, d) {
-            document.getElementById('detailModalTitle').innerText = `${m + 1}月${d}日(${['日','月','火','水','木','金','土'][new Date(y,m,d).getDay()]}) の詳細`;
+            const targetD = new Date(y, m, d);
+            const isHoliday = (targetD.getDay() === 0 || targetD.getDay() === 6);
+            const dKey = getDataKey(targetD);
+            const dData = sampleData[dKey] || {
+                chita: { plan: "未登録", returnTime: "-", lunch: "-", dinner: "-" },
+                akita: { plan: "未登録", returnTime: "-", lunch: "-", dinner: "-" },
+                menu: "", memo: ""
+            };
+
+            document.getElementById('detailModalTitle').innerText = `${m + 1}月${d}日(${['日','月','火','水','木','金','土'][targetD.getDay()]}) の詳細`;
+            
+            let chitaHtml = `<div>予定: ${dData.chita.plan}</div><div>帰宅時刻: ${dData.chita.returnTime}</div>`;
+            let akitaHtml = `<div>予定: ${dData.akita.plan}</div><div>帰宅時刻: ${dData.akita.returnTime}</div>`;
+            if(isHoliday) {
+                chitaHtml = `<div>予定: ${dData.chita.plan}</div><div>出発: ${dData.chita.departTime||'-'} / 帰宅: ${dData.chita.returnTime||'-'}</div><div>昼食: ${dData.chita.lunch||'-'} / 夕食: ${dData.chita.dinner||'-'}</div>`;
+                akitaHtml = `<div>予定: ${dData.akita.plan}</div><div>出発: ${dData.akita.departTime||'-'} / 帰宅: ${dData.akita.returnTime||'-'}</div><div>昼食: ${dData.akita.lunch||'-'} / 夕食: ${dData.akita.dinner||'-'}</div>`;
+            } else {
+                chitaHtml += `<div>夕食要否: ${dData.chita.dinner}</div>`;
+                akitaHtml += `<div>夕食要否: ${dData.akita.dinner}</div>`;
+            }
+
             document.getElementById('detailModalBody').innerHTML = `
-                <div style="margin-bottom:12px;">
+                <div style="margin-bottom:10px;">
                     <div style="color:var(--chita-color); font-weight:bold;">● ちーた</div>
-                    <div>予定: 在宅</div>
-                    <div>帰宅時刻: ◯</div>
-                    <div>夕食: ◯</div>
+                    ${chitaHtml}
                 </div>
-                <div>
+                <div style="margin-bottom:10px;">
                     <div style="color:var(--akita-color); font-weight:bold;">● あきた</div>
-                    <div>予定: 出社</div>
-                    <div>帰宅時刻: 19:00</div>
-                    <div>夕食: ×</div>
+                    ${akitaHtml}
                 </div>
-                <div style="margin-top:12px; border-top:1px solid #eee; padding-top:6px;">
-                    <div><b>夕食メニュー:</b> タコスサラダ</div>
-                    <div><b>備考:</b> 特になし</div>
+                <div style="border-top:1px solid #eee; padding-top:6px;">
+                    <div><b>夕食メニュー:</b> ${dData.menu || ''}</div>
+                    <div><b>備考:</b> ${dData.memo || ''}</div>
                 </div>
             `;
+            window.activeDetailDate = { y, m, d };
             document.getElementById('dayDetailModal').classList.add('open');
-        }
-
-        function openSingleEdit(y, m, d) {
-            closeModal('dayDetailModal');
-            document.getElementById('editModalTitle').innerText = `${m + 1}月${d}日の編集`;
-            document.getElementById('editModalBody').innerHTML = `
-                <div class="section-divider chita">■ ちーたの予定</div>
-                <div class="form-group"><label>予定</label><input type="text" value="在宅" maxlength="20"></div>
-                <div class="form-group"><label>帰宅時刻</label><input type="text" value="◯"></div>
-                <div class="form-group"><label>夕食要否</label><select><option>◯</option><option>×</option><option>未定</option></select></div>
-
-                <div class="section-divider akita">■ あきたの予定</div>
-                <div class="form-group"><label>予定</label><input type="text" value="出社" maxlength="20"></div>
-                <div class="form-group"><label>帰宅時刻</label><input type="text" value="19:00"></div>
-                <div class="form-group"><label>夕食要否</label><select><option>◯</option><option selected>×</option><option>未定</option></select></div>
-
-                <div class="section-divider">■ 共通項目</div>
-                <div class="form-group"><label>夕食メニュー</label><input type="text" value="タコスサラダ" maxlength="20"></div>
-                <div class="form-group"><label>備考</label><input type="text" value=""></div>
-            `;
-            document.getElementById('singleEditModal').classList.add('open');
         }
 
         function openEditFromDetail() {
             closeModal('dayDetailModal');
-            openSingleEdit(2026, 9, 5); // サンプル用
+            if(window.activeDetailDate) {
+                openSingleEdit(window.activeDetailDate.y, window.activeDetailDate.m, window.activeDetailDate.d);
+            }
         }
 
+        function openSingleEdit(y, m, d) {
+            closeModal('dayDetailModal');
+            const targetD = new Date(y, m, d);
+            const isHoliday = (targetD.getDay() === 0 || targetD.getDay() === 6);
+            const dKey = getDataKey(targetD);
+            const dData = sampleData[dKey] || {
+                chita: { plan: "", returnTime: "", lunch: "未定", dinner: "未定" },
+                akita: { plan: "", returnTime: "", lunch: "未定", dinner: "未定" },
+                menu: "", memo: ""
+            };
+
+            document.getElementById('editModalTitle').innerText = `${m + 1}月${d}日の編集`;
+            
+            let chitaFields = `
+                <div class="form-group"><label>予定</label><input type="text" id="edit_c_plan" value="${dData.chita.plan || ''}" maxlength="20"></div>
+                ${isHoliday ? `<div class="form-group"><label>出発時刻</label><input type="text" id="edit_c_depart" value="${dData.chita.departTime || ''}"></div>` : ''}
+                <div class="form-group"><label>帰宅時刻</label><input type="text" id="edit_c_return" value="${dData.chita.returnTime || ''}"></div>
+                ${isHoliday ? `<div class="form-group"><label>昼食要否</label><select id="edit_c_lunch"><option ${dData.chita.lunch==='◯'?'selected':''}>◯</option><option ${dData.chita.lunch==='×'?'selected':''}>×</option><option${dData.chita.lunch==='未定'?'selected':''}>未定</option></select></div>` : ''}
+                <div class="form-group"><label>夕食要否</label><select id="edit_c_dinner"><option ${dData.chita.dinner==='◯'?'selected':''}>◯</option><option ${dData.chita.dinner==='×'?'selected':''}>×</option><option ${dData.chita.dinner==='未定'?'selected':''}>未定</option></select></div>
+            `;
+
+            let akitaFields = `
+                <div class="form-group"><label>予定</label><input type="text" id="edit_a_plan" value="${dData.akita.plan || ''}" maxlength="20"></div>
+                ${isHoliday ? `<div class="form-group"><label>出発時刻</label><input type="text" id="edit_a_depart" value="${dData.akita.departTime || ''}"></div>` : ''}
+                <div class="form-group"><label>帰宅時刻</label><input type="text" id="edit_a_return" value="${dData.akita.returnTime || ''}"></div>
+                ${isHoliday ? `<div class="form-group"><label>昼食要否</label><select id="edit_a_lunch"><option ${dData.akita.lunch==='◯'?'selected':''}>◯</option><option ${dData.akita.lunch==='×'?'selected':''}>×</option><option${dData.akita.lunch==='未定'?'selected':''}>未定</option></select></div>` : ''}
+                <div class="form-group"><label>夕食要否</label><select id="edit_a_dinner"><option ${dData.akita.dinner==='◯'?'selected':''}>◯</option><option ${dData.akita.dinner==='×'?'selected':''}>×</option><option ${dData.akita.dinner==='未定'?'selected':''}>未定</option></select></div>
+            `;
+
+            document.getElementById('editModalBody').innerHTML = `
+                <div class="section-divider chita">■ ちーた</div>
+                ${chitaFields}
+                <div class="section-divider akita">■ あきた</div>
+                ${akitaFields}
+                <div class="section-divider">■ 共通・その他</div>
+                <div class="form-group"><label>夕食メニュー</label><input type="text" id="edit_menu" value="${dData.menu || ''}" maxlength="20"></div>
+                <div class="form-group"><label>備考</label><input type="text" id="edit_memo" value="${dData.memo || ''}"></div>
+            `;
+            window.editingTargetKey = dKey;
+            window.editingIsHoliday = isHoliday;
+            document.getElementById('singleEditModal').classList.add('open');
+        }
+
+        // ④ 週表示の一括編集（すべての項目を編集可能にし、既存データを反映）
         function openBatchModal() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const date = currentDate.getDate();
+            const dayOfWeek = currentDate.getDay();
+            const diffToMonday = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek;
+            const monday = new Date(year, month, date + diffToMonday);
+
             let html = '';
             const days = ['月', '火', '水', '木', '金', '土', '日'];
-            days.forEach((d, i) => {
+
+            for (let i = 0; i < 7; i++) {
+                const targetD = new Date(monday);
+                targetD.setDate(monday.getDate() + i);
+                const isHoliday = (i >= 5);
+                const dKey = getDataKey(targetD);
+                const dData = sampleData[dKey] || {
+                    chita: { plan: "", returnTime: "", lunch: "未定", dinner: "未定" },
+                    akita: { plan: "", returnTime: "", lunch: "未定", dinner: "未定" },
+                    menu: "", memo: ""
+                };
+
                 html += `
-                    <div style="font-weight:bold; background:#eee; padding:4px; margin-top:8px; border-radius:3px;">10/${5+i} (${d})</div>
-                    <div style="display:flex; gap:6px; margin-top:4px;">
-                        <input type="text" placeholder="ちーた予定" style="flex:1;" maxlength="20">
-                        <input type="text" placeholder="あきた予定" style="flex:1;" maxlength="20">
+                    <div style="font-weight:bold; background:#eee; padding:4px 8px; margin-top:10px; border-radius:3px;">
+                        ${targetD.getMonth() + 1}/${targetD.getDate()} (${days[i]}) ${isHoliday ? '[休日]' : ''}
+                    </div>
+                    <div style="padding: 4px 0;">
+                        <div style="font-size:10px; color:var(--chita-color); font-weight:bold;">●ちーた</div>
+                        <div style="display:flex; gap:4px; margin-bottom:2px;">
+                            <input type="text" placeholder="予定" id="batch_${dKey}_c_plan" value="${dData.chita.plan || ''}" style="flex:2" maxlength="20">
+                            ${isHoliday ? `<input type="text" placeholder="出発" id="batch_${dKey}_c_dep" value="${dData.chita.departTime || ''}" style="flex:1">` : ''}
+                            <input type="text" placeholder="帰宅" id="batch_${dKey}_c_ret" value="${dData.chita.returnTime || ''}" style="flex:1">
+                        </div>
+                        <div style="display:flex; gap:4px; margin-bottom:4px;">
+                            ${isHoliday ? `<select id="batch_${dKey}_c_lun" style="flex:1"><option value="◯" ${dData.chita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.chita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.chita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                            <select id="batch_${dKey}_c_din" style="flex:1"><option value="◯" ${dData.chita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.chita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.chita.dinner==='未定'?'selected':''}>夕未定</option></select>
+                        </div>
+
+                        <div style="font-size:10px; color:var(--akita-color); font-weight:bold;">●あきた</div>
+                        <div style="display:flex; gap:4px; margin-bottom:2px;">
+                            <input type="text" placeholder="予定" id="batch_${dKey}_a_plan" value="${dData.akita.plan || ''}" style="flex:2" maxlength="20">
+                            ${isHoliday ? `<input type="text" placeholder="出発" id="batch_${dKey}_a_dep" value="${dData.akita.departTime || ''}" style="flex:1">` : ''}
+                            <input type="text" placeholder="帰宅" id="batch_${dKey}_a_ret" value="${dData.akita.returnTime || ''}" style="flex:1">
+                        </div>
+                        <div style="display:flex; gap:4px; margin-bottom:4px;">
+                            ${isHoliday ? `<select id="batch_${dKey}_a_lun" style="flex:1"><option value="◯" ${dData.akita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.akita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.akita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                            <select id="batch_${dKey}_a_din" style="flex:1"><option value="◯" ${dData.akita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.akita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.akita.dinner==='未定'?'selected':''}>夕未定</option></select>
+                        </div>
+
+                        <div style="display:flex; gap:4px;">
+                            <input type="text" placeholder="夕食メニュー" id="batch_${dKey}_menu" value="${dData.menu || ''}" style="flex:1" maxlength="20">
+                            <input type="text" placeholder="備考" id="batch_${dKey}_memo" value="${dData.memo || ''}" style="flex:1">
+                        </div>
                     </div>
                 `;
-            });
+            }
+
             document.getElementById('batchEditBody').innerHTML = html;
+            window.batchTargetMonday = monday;
             document.getElementById('batchEditModal').classList.add('open');
         }
 
@@ -665,13 +836,65 @@
         }
 
         function saveSingleData() {
-            alert('保存しました（※GAS連携時にスプレッドシートへ書き込みます）');
+            const dKey = window.editingTargetKey;
+            const isHoliday = window.editingIsHoliday;
+
+            sampleData[dKey] = {
+                chita: {
+                    plan: document.getElementById('edit_c_plan').value,
+                    departTime: isHoliday ? document.getElementById('edit_c_depart').value : undefined,
+                    returnTime: document.getElementById('edit_c_return').value,
+                    lunch: isHoliday ? document.getElementById('edit_c_lunch').value : undefined,
+                    dinner: document.getElementById('edit_c_dinner').value
+                },
+                akita: {
+                    plan: document.getElementById('edit_a_plan').value,
+                    departTime: isHoliday ? document.getElementById('edit_a_depart').value : undefined,
+                    returnTime: document.getElementById('edit_a_return').value,
+                    lunch: isHoliday ? document.getElementById('edit_a_lunch').value : undefined,
+                    dinner: document.getElementById('edit_a_dinner').value
+                },
+                menu: document.getElementById('edit_menu').value,
+                memo: document.getElementById('edit_memo').value
+            };
+
+            alert('保存しました（GAS連携時にスプレッドシートへ書き込みます）');
             closeModal('singleEditModal');
+            if (currentTab === 'month') renderMonthView();
+            else renderWeekView();
         }
 
         function saveBatchData() {
-            alert('一括保存しました（※GAS連携時にスプレッドシートへ書き込みます）');
+            const monday = window.batchTargetMonday;
+            for (let i = 0; i < 7; i++) {
+                const targetD = new Date(monday);
+                targetD.setDate(monday.getDate() + i);
+                const isHoliday = (i >= 5);
+                const dKey = getDataKey(targetD);
+
+                sampleData[dKey] = {
+                    chita: {
+                        plan: document.getElementById(`batch_${dKey}_c_plan`).value,
+                        departTime: isHoliday ? document.getElementById(`batch_${dKey}_c_dep`).value : undefined,
+                        returnTime: document.getElementById(`batch_${dKey}_c_ret`).value,
+                        lunch: isHoliday ? document.getElementById(`batch_${dKey}_c_lun`).value : undefined,
+                        dinner: document.getElementById(`batch_${dKey}_c_din`).value
+                    },
+                    akita: {
+                        plan: document.getElementById(`batch_${dKey}_a_plan`).value,
+                        departTime: isHoliday ? document.getElementById(`batch_${dKey}_a_dep`).value : undefined,
+                        returnTime: document.getElementById(`batch_${dKey}_a_ret`).value,
+                        lunch: isHoliday ? document.getElementById(`batch_${dKey}_a_lun`).value : undefined,
+                        dinner: document.getElementById(`batch_${dKey}_a_din`).value
+                    },
+                    menu: document.getElementById(`batch_${dKey}_menu`).value,
+                    memo: document.getElementById(`batch_${dKey}_memo`).value
+                };
+            }
+
+            alert('一括保存しました（GAS連携時にスプレッドシートへ書き込みます）');
             closeModal('batchEditModal');
+            renderWeekView();
         }
 
         // 初期表示
