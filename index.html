@@ -68,7 +68,6 @@
             cursor: pointer;
         }
 
-        /* ④ タイトルを中央に配置 */
         .current-title {
             position: absolute;
             left: 50%;
@@ -138,7 +137,6 @@
             background: var(--border-color);
         }
 
-        /* ④ 曜日の文字サイズを一回り大きく */
         .weekday-header-row {
             display: grid;
             grid-template-columns: repeat(7, 1fr);
@@ -170,7 +168,6 @@
             color: #bbb;
         }
 
-        /* ④ 日付の文字サイズを一回り大きく */
         .calendar-cell .day-num {
             font-weight: bold;
             font-size: 13px;
@@ -189,16 +186,6 @@
             line-height: 1.15;
             margin-top: 1px;
         }
-
-        .calendar-tag {
-            font-weight: bold;
-            padding: 0 2px;
-            border-radius: 2px;
-            font-size: 8px;
-            flex-shrink: 0;
-        }
-        .calendar-tag.chita { background: var(--chita-bg); color: var(--chita-color); }
-        .calendar-tag.akita { background: var(--akita-bg); color: var(--akita-color); }
 
         /* 週表示 */
         .week-container {
@@ -553,43 +540,25 @@
             }
         };
 
-        // ① 日本の祝日判定ロジック（簡易版 / 必要に応じて拡張可能）
         function getJapaneseHolidayName(year, month, day) {
-            // 固定祝日および主要な祝日の計算（月は0始まりではなく1~12）
             const m = month + 1;
             const d = day;
             
-            // 元日: 1月1日
             if (m === 1 && d === 1) return "元日";
-            // 成人の日: 1月第2月曜
             if (m === 1 && d >= 8 && d <= 14 && new Date(year, month, d).getDay() === 1) return "成人の日";
-            // 建国記念の日: 2月11日
             if (m === 2 && d === 11) return "建国記念の日";
-            // 天皇誕生日: 2月23日
             if (m === 2 && d === 23) return "天皇誕生日";
-            // 春分の日: 簡易計算 (2026年は3月20日)
             if (m === 3 && d === 20) return "春分の日";
-            // 昭和の日: 4月29日
             if (m === 4 && d === 29) return "昭和の日";
-            // 憲法記念日: 5月3日
             if (m === 5 && d === 3) return "憲法記念日";
-            // みどりの日: 5月4日
             if (m === 5 && d === 4) return "みどりの日";
-            // こどもの日: 5月5日
             if (m === 5 && d === 5) return "こどもの日";
-            // 海の日: 7月第3月曜
             if (m === 7 && d >= 15 && d <= 21 && new Date(year, month, d).getDay() === 1) return "海の日";
-            // 山の日: 8月11日
             if (m === 8 && d === 11) return "山の日";
-            // 敬老の日: 9月第3月曜
             if (m === 9 && d >= 15 && d <= 21 && new Date(year, month, d).getDay() === 1) return "敬老の日";
-            // 秋分の日: 簡易計算 (2026年は9月23日)
             if (m === 9 && d === 23) return "秋分の日";
-            // スポーツの日: 10月第2月曜 (2026年10月は10月12日)
             if (m === 10 && d >= 8 && d <= 14 && new Date(year, month, d).getDay() === 1) return "スポーツの日";
-            // 文化の日: 11月3日
             if (m === 11 && d === 3) return "文化の日";
-            // 勤労感謝の日: 11月23日
             if (m === 11 && d === 23) return "勤労感謝の日";
 
             return null;
@@ -602,7 +571,6 @@
             const dayOfWeek = dateObj.getDay();
             const dKey = `${y}-${m+1}-${d}`;
             
-            // 土日、または祝日、または手動設定の「特別な休日」
             const isSatSun = (dayOfWeek === 0 || dayOfWeek === 6);
             const isNationalHoliday = (getJapaneseHolidayName(y, m, d) !== null);
             const hasOverride = sampleData[dKey] && sampleData[dKey].isHolidayOverride;
@@ -737,12 +705,13 @@
 
                         cell.onclick = () => openDayDetail(item.year, item.month, item.date);
                         
-                        // ⑤ 各人の予定などを最大4行まで表示できるようにする
+                        // 「あきた」「ちーた」それぞれ最大3行、「メニュー」は最大2行に設定
                         cell.innerHTML = `
                             <div class="day-num">${item.day}</div>
                             <div class="calendar-cell-summary"><span style="overflow:hidden; text-overflow:ellipsis;">${cPlan}</span></div>
                             <div class="calendar-cell-summary"><span style="overflow:hidden; text-overflow:ellipsis;">${aPlan}</span></div>
                             <div class="calendar-cell-summary"><span style="overflow:hidden; text-overflow:ellipsis; color:#666;">${menuText}</span></div>
+                            <div class="calendar-cell-summary" style="display:none;"></div>
                         `;
                     } else {
                         cell.className = `calendar-cell other-month`;
@@ -1016,7 +985,6 @@
             document.getElementById('singleEditModal').classList.add('open');
         }
 
-        // ② 一括編集画面での描画と「特別な休日」チェックボックス対応
         function openBatchModal() {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
@@ -1044,16 +1012,16 @@
                 }
                 const dData = sampleData[dKey];
                 
-                // 元の曜日判定＋手動オーバーライド
                 const baseIsHol = (targetD.getDay() === 0 || targetD.getDay() === 6 || getJapaneseHolidayName(targetD.getFullYear(), targetD.getMonth(), targetD.getDate()) !== null);
                 const isOverrideChecked = dData.isHolidayOverride || (baseIsHol && dData.isHolidayOverride !== false);
                 const holName = getJapaneseHolidayName(targetD.getFullYear(), targetD.getMonth(), targetD.getDate());
 
+                // 「特別な休日」から「休日設定」へ文言を変更
                 html += `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:#eee; padding:4px 8px; margin-top:10px; border-radius:3px;">
                         <span style="font-weight:bold;">${targetD.getMonth() + 1}/${targetD.getDate()} (${days[i]}) ${holName ? `[${holName}]` : ''}</span>
                         <label style="font-size:11px; cursor:pointer; display:flex; align-items:center; gap:3px;">
-                            <input type="checkbox" id="batch_hol_${dKey}" ${isOverrideChecked ? 'checked' : ''} onchange="toggleBatchHolidayFlag('${dKey}')"> 特別な休日
+                            <input type="checkbox" id="batch_hol_${dKey}" ${isOverrideChecked ? 'checked' : ''} onchange="toggleBatchHolidayFlag('${dKey}')"> 休日設定
                         </label>
                     </div>
                     <div style="padding: 4px 0;">
@@ -1091,13 +1059,12 @@
             document.getElementById('batchEditModal').classList.add('open');
         }
 
-        // チェックボックス変更時に一時保存して再描画
         function toggleBatchHolidayFlag(dKey) {
-            collectBatchInputValues(); // 現在の入力値を保持
+            collectBatchInputValues();
             const chk = document.getElementById(`batch_hol_${dKey}`);
             if (!sampleData[dKey]) sampleData[dKey] = { chita: {}, akita: {} };
             sampleData[dKey].isHolidayOverride = chk.checked;
-            renderBatchModalContent(); // 再描画してフォーム項目を切り替え
+            renderBatchModalContent();
         }
 
         function collectBatchInputValues() {
@@ -1175,7 +1142,6 @@
             renderWeekView();
         }
 
-        // 左右スワイプによる期間変更
         let touchStartX = 0;
         let touchEndX = 0;
         const container = document.getElementById('contentContainer');
