@@ -135,6 +135,7 @@
             flex: 1;
             gap: 1px;
             background: var(--border-color);
+            min-height: 0; /* flexアイテム内で縮小可能にする */
         }
 
         .weekday-header-row {
@@ -161,6 +162,7 @@
             cursor: pointer;
             overflow: hidden;
             font-size: 9px;
+            min-height: 0;
         }
 
         .calendar-cell.other-month {
@@ -170,21 +172,29 @@
 
         .calendar-cell .day-num {
             font-weight: bold;
-            font-size: 13px;
+            font-size: 12px;
             margin-bottom: 1px;
             line-height: 1;
+            flex-shrink: 0;
         }
 
         .calendar-cell-summary {
-            display: flex;
-            align-items: center;
-            gap: 2px;
-            font-size: 9px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            line-height: 1.15;
+            font-size: 8.5px;
+            line-height: 1.1;
             margin-top: 1px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            word-break: break-all;
+        }
+        /* ちーた・あきたは最大3行 */
+        .calendar-cell-summary.person-line {
+            -webkit-line-clamp: 3;
+        }
+        /* メニューは最大2行 */
+        .calendar-cell-summary.menu-line {
+            -webkit-line-clamp: 2;
+            color: #666;
         }
 
         /* 週表示 */
@@ -368,6 +378,7 @@
             -webkit-overflow-scrolling: touch;
             flex: 1;
             font-size: 12px;
+            overflow-x: hidden; /* 横スクロールを完全防止 */
         }
 
         .modal-footer {
@@ -705,13 +716,11 @@
 
                         cell.onclick = () => openDayDetail(item.year, item.month, item.date);
                         
-                        // 「あきた」「ちーた」それぞれ最大3行、「メニュー」は最大2行に設定
                         cell.innerHTML = `
                             <div class="day-num">${item.day}</div>
-                            <div class="calendar-cell-summary"><span style="overflow:hidden; text-overflow:ellipsis;">${cPlan}</span></div>
-                            <div class="calendar-cell-summary"><span style="overflow:hidden; text-overflow:ellipsis;">${aPlan}</span></div>
-                            <div class="calendar-cell-summary"><span style="overflow:hidden; text-overflow:ellipsis; color:#666;">${menuText}</span></div>
-                            <div class="calendar-cell-summary" style="display:none;"></div>
+                            <div class="calendar-cell-summary person-line"><span>${cPlan}</span></div>
+                            <div class="calendar-cell-summary person-line"><span>${aPlan}</span></div>
+                            <div class="calendar-cell-summary menu-line"><span>${menuText}</span></div>
                         `;
                     } else {
                         cell.className = `calendar-cell other-month`;
@@ -1016,7 +1025,7 @@
                 const isOverrideChecked = dData.isHolidayOverride || (baseIsHol && dData.isHolidayOverride !== false);
                 const holName = getJapaneseHolidayName(targetD.getFullYear(), targetD.getMonth(), targetD.getDate());
 
-                // 「特別な休日」から「休日設定」へ文言を変更
+                /* 休日時は項目が増えるため、幅を完全に固定・スリム化してはみ出さないように調整 */
                 html += `
                     <div style="display:flex; justify-content:space-between; align-items:center; background:#eee; padding:4px 8px; margin-top:10px; border-radius:3px;">
                         <span style="font-weight:bold;">${targetD.getMonth() + 1}/${targetD.getDate()} (${days[i]}) ${holName ? `[${holName}]` : ''}</span>
@@ -1026,30 +1035,26 @@
                     </div>
                     <div style="padding: 4px 0;">
                         <div style="font-size:10px; color:var(--chita-color); font-weight:bold;">●ちーた</div>
-                        <div style="display:flex; gap:3px; margin-bottom:2px;">
-                            <input type="text" placeholder="予定" id="batch_${dKey}_c_plan" value="${dData.chita.plan || ''}" style="flex:2; font-size:11px; padding:4px;">
-                            ${isOverrideChecked ? `<input type="text" placeholder="出発" id="batch_${dKey}_c_dep" value="${dData.chita.departTime || ''}" style="flex:1; font-size:11px; padding:4px;">` : ''}
-                            <input type="text" placeholder="帰宅" id="batch_${dKey}_c_ret" value="${dData.chita.returnTime || ''}" style="flex:1; font-size:11px; padding:4px;">
-                        </div>
-                        <div style="display:flex; gap:3px; margin-bottom:4px;">
-                            ${isOverrideChecked ? `<select id="batch_${dKey}_c_lun" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.chita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.chita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.chita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
-                            <select id="batch_${dKey}_c_din" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.chita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.chita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.chita.dinner==='未定'?'selected':''}>夕未定</option></select>
+                        <div style="display:flex; gap:2px; margin-bottom:2px; width:100%;">
+                            <input type="text" placeholder="予定" id="batch_${dKey}_c_plan" value="${dData.chita.plan || ''}" style="${isOverrideChecked ? 'width:36%;' : 'flex:2;'} font-size:11px; padding:3px; min-width:0;">
+                            ${isOverrideChecked ? `<input type="text" placeholder="出" id="batch_${dKey}_c_dep" value="${dData.chita.departTime || ''}" style="width:16%; font-size:11px; padding:3px; text-align:center; min-width:0;">` : ''}
+                            <input type="text" placeholder="帰" id="batch_${dKey}_c_ret" value="${dData.chita.returnTime || ''}" style="${isOverrideChecked ? 'width:16%;' : 'flex:1;'} font-size:11px; padding:3px; text-align:center; min-width:0;">
+                            ${isOverrideChecked ? `<select id="batch_${dKey}_c_lun" style="width:16%; font-size:10px; padding:2px; min-width:0;"><option value="◯" ${dData.chita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.chita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.chita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                            <select id="batch_${dKey}_c_din" style="${isOverrideChecked ? 'width:16%;' : 'flex:1;'} font-size:10px; padding:2px; min-width:0;"><option value="◯" ${dData.chita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.chita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.chita.dinner==='未定'?'selected':''}>夕未定</option></select>
                         </div>
 
                         <div style="font-size:10px; color:var(--akita-color); font-weight:bold;">●あきた</div>
-                        <div style="display:flex; gap:3px; margin-bottom:2px;">
-                            <input type="text" placeholder="予定" id="batch_${dKey}_a_plan" value="${dData.akita.plan || ''}" style="flex:2; font-size:11px; padding:4px;">
-                            ${isOverrideChecked ? `<input type="text" placeholder="出発" id="batch_${dKey}_a_dep" value="${dData.akita.departTime || ''}" style="flex:1; font-size:11px; padding:4px;">` : ''}
-                            <input type="text" placeholder="帰宅" id="batch_${dKey}_a_ret" value="${dData.akita.returnTime || ''}" style="flex:1; font-size:11px; padding:4px;">
-                        </div>
-                        <div style="display:flex; gap:3px; margin-bottom:4px;">
-                            ${isOverrideChecked ? `<select id="batch_${dKey}_a_lun" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.akita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.akita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.akita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
-                            <select id="batch_${dKey}_a_din" style="flex:1; font-size:11px; padding:4px;"><option value="◯" ${dData.akita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.akita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.akita.dinner==='未定'?'selected':''}>夕未定</option></select>
+                        <div style="display:flex; gap:2px; margin-bottom:4px; width:100%;">
+                            <input type="text" placeholder="予定" id="batch_${dKey}_a_plan" value="${dData.akita.plan || ''}" style="${isOverrideChecked ? 'width:36%;' : 'flex:2;'} font-size:11px; padding:3px; min-width:0;">
+                            ${isOverrideChecked ? `<input type="text" placeholder="出" id="batch_${dKey}_a_dep" value="${dData.akita.departTime || ''}" style="width:16%; font-size:11px; padding:3px; text-align:center; min-width:0;">` : ''}
+                            <input type="text" placeholder="帰" id="batch_${dKey}_a_ret" value="${dData.akita.returnTime || ''}" style="${isOverrideChecked ? 'width:16%;' : 'flex:1;'} font-size:11px; padding:3px; text-align:center; min-width:0;">
+                            ${isOverrideChecked ? `<select id="batch_${dKey}_a_lun" style="width:16%; font-size:10px; padding:2px; min-width:0;"><option value="◯" ${dData.akita.lunch==='◯'?'selected':''}>昼◯</option><option value="×" ${dData.akita.lunch==='×'?'selected':''}>昼×</option><option value="未定" ${dData.akita.lunch==='未定'?'selected':''}>昼未定</option></select>` : ''}
+                            <select id="batch_${dKey}_a_din" style="${isOverrideChecked ? 'width:16%;' : 'flex:1;'} font-size:10px; padding:2px; min-width:0;"><option value="◯" ${dData.akita.dinner==='◯'?'selected':''}>夕◯</option><option value="×" ${dData.akita.dinner==='×'?'selected':''}>夕×</option><option value="未定" ${dData.akita.dinner==='未定'?'selected':''}>夕未定</option></select>
                         </div>
 
-                        <div style="display:flex; gap:3px;">
-                            <input type="text" placeholder="夕食メニュー" id="batch_${dKey}_menu" value="${dData.menu || ''}" style="flex:1; font-size:11px; padding:4px;">
-                            <input type="text" placeholder="備考" id="batch_${dKey}_memo" value="${dData.memo || ''}" style="flex:1; font-size:11px; padding:4px;">
+                        <div style="display:flex; gap:2px; width:100%;">
+                            <input type="text" placeholder="夕食メニュー" id="batch_${dKey}_menu" value="${dData.menu || ''}" style="flex:1; font-size:11px; padding:3px; min-width:0;">
+                            <input type="text" placeholder="備考" id="batch_${dKey}_memo" value="${dData.memo || ''}" style="flex:1; font-size:11px; padding:3px; min-width:0;">
                         </div>
                     </div>
                 `;
