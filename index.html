@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2人スケジュール共有</title>
+    <style>
+        :root {
+            --chita-color: #d32f2f;
+            --chita-bg: #ffebee;
+            --akita-color: #1976d2;
+            --akita-bg: #e3f2fd;
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --border-color: #ccc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 画面全体を固定してスクロールさせない設計 */
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* ヘッダーエリア */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: #fff;
+            border-bottom: 1px solid var(--border-color);
+            height: 50px;
+            flex-shrink: 0;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-controls button, header button {
+            background: #fff;
+            border: 1px solid var(--border-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .current-title {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .batch-btn {
+            background-color: #333 !important;
+            color: #fff !important;
+            border-color: #333 !important;
+        }
+
+        /* メインコンテンツエリア */
+        .content-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-pane {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            padding: 8px;
+        }
+
+        .tab-pane.active {
+            display: flex;
+        }
+
+        /* 月表示（カレンダー） */
+        .month-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: auto repeat(6, 1fr);
+            flex: 1;
+            gap: 2px;
+        }
+
+        .weekday-header {
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 2px 0;
+        }
+
+        .weekday-header:nth-child(6) { color: #1976d2; }
+        .weekday-header:nth-child(7) { color: #d32f2f; }
+
+        .calendar-cell {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 2px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            cursor: pointer;
+            overflow: hidden;
+            font-size: 10px;
+        }
+
+        .calendar-cell.other-month {
+            background: #fafafa;
+            color: #aaa;
+        }
+
+        .calendar-cell .day-num {
+            font-weight: bold;
+            font-size: 11px;
+            margin-bottom: 1px;
+        }
+
+        .calendar-cell-summary {
+            font-size: 9px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            line-height: 1.1;
+        }
+
+        .summary-chita { color: var(--chita-color); }
+        .summary-akita { color: var(--akita-color); }
+
+        /* 週表示 */
+        .week-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 3px;
+            overflow: hidden;
+        }
+
+        .week-row {
+            display: flex;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .week-date-col {
+            width: 65px;
+            background: #eee;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 11px;
+            font-weight: bold;
+            border-right: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .week-data-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 2px 6px;
+            font-size: 10px;
+            overflow: hidden;
+        }
+
+        .person-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .person-tag {
+            font-weight: bold;
+            padding: 0 4px;
+            border-radius: 2px;
+            font-size: 9px;
+        }
+        .person-tag.chita { background: var(--chita-bg); color: var(--chita-color); }
+        .person-tag.akita { background: var(--akita-bg); color: var(--akita-color); }
+
+        .week-edit-btn-col {
+            width: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px solid #eee;
+            background: #fafafa;
+        }
+
+        .week-edit-btn-col button {
+            background: none;
+            border: none;
+            font-size: 12px;
+            cursor: pointer;
+            color: #555;
+        }
+
+        /* 下部タブバー (LINE風) */
+        nav.tab-bar {
+            display: flex;
+            height: 50px;
+            background: #fff;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: #777;
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .tab-item.active {
+            color: #333;
+            font-weight: bold;
+            background: #fafafa;
+        }
+
+        .tab-icon {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        /* ポップアップ共通 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.open {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #fff;
+            width: 90%;
+            max-width: 380px;
+            max-height: 85vh;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: bold;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #555;
+        }
+
+        .modal-body {
+            padding: 12px;
+            overflow-y: auto;
+            font-size: 12px;
+        }
+
+        .modal-footer {
+            padding: 8px 12px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        /* フォーム要素 */
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 3px;
+            font-size: 11px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .section-divider {
+            margin: 10px 0 6px 0;
+            border-bottom: 2px dashed #eee;
+            font-weight: bold;
+            font-size: 11px;
+        }
+        .section-divider.chita { color: var(--chita-color); }
+        .section-divider.akita { color: var(--akita-color); }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+        <!-- ヘッダー -->
+        <header>
+            <div class="nav-controls">
+                <button onclick="changePeriod(-1)">◀︎</button>
+                <button onclick="resetToCurrent()">今</button>
+                <button onclick="changePeriod(1)">▶︎</button>
+            </div>
+            <div class="current-title" id="currentTitle">2026年 10月</div>
+            <button class="batch-btn" onclick="openBatchModal()">一括編集</button>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <div class="content-container">
+            <!-- ① 月表示タブ -->
+            <div id="tabMonth" class="tab-pane active">
+                <div class="month-grid" id="monthGrid">
+                    <!-- 曜日ヘッダー -->
+                    <div class="weekday-header">月</div>
+                    <div class="weekday-header">火</div>
+                    <div class="weekday-header">水</div>
+                    <div class="weekday-header">木</div>
+                    <div class="weekday-header">金</div>
+                    <div class="weekday-header" style="color:var(--akita-color)">土</div>
+                    <div class="weekday-header" style="color:var(--chita-color)">日</div>
+                    <!-- カレンダーの日付セルはJSで動的生成 -->
+                </div>
+            </div>
+
+            <!-- ② 週表示タブ -->
+            <div id="tabWeek" class="tab-pane">
+                <div class="week-container" id="weekContainer">
+                    <!-- 週の各曜日の行はJSで動的生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 下部タブバー -->
+        <nav class="tab-bar">
+            <a class="tab-item active" onclick="switchTab('month')">
+                <span class="tab-icon">📅</span>
+                月表示
+            </a>
+            <a class="tab-item" onclick="switchTab('week')">
+                <span class="tab-icon">📋</span>
+                週表示
+            </a>
+        </nav>
+    </div>
+
+    <!-- 日付詳細ポップアップ（月表示用） -->
+    <div class="modal-overlay" id="dayDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="detailModalTitle">10月5日(月) の詳細</span>
+                <button class="close-btn" onclick="closeModal('dayDetailModal')">×</button>
+            </div>
+            <div class="modal-body" id="detailModalBody">
+                <!-- ちーた・あきたの情報 -->
+            </div>
+            <div class="modal-footer">
+                <button onclick="openEditFromDetail()">編集する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 単日編集ポップアップ -->
+    <div class="modal-overlay" id="singleEditModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span id="editModalTitle">予定の編集</span>
+                <button class="close-btn" onclick="closeModal('singleEditModal')">×</button>
+            </div>
+            <div class="modal-body" id="editModalBody">
+                <!-- 入力フォーム -->
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('singleEditModal')">キャンセル</button>
+                <button class="batch-btn" onclick="saveSingleData()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 一括編集ポップアップ -->
+    <div class="modal-overlay" id="batchEditModal">
+        <div class="modal-content" style="max-height: 90vh;">
+            <div class="modal-header">
+                <span>1週間分の一括編集</span>
+                <button class="close-btn" onclick="closeModal('batchEditModal')">×</button>
+            </div>
+            <div class="modal-body" id="batchEditBody">
+                <!-- 1週間分のフォーム -->
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeModal('batchEditModal')">キャンセル</button>
+                <button class="batch-btn" onclick="saveBatchData()">一括保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'month';
+        let currentDate = new Date(2026, 9, 5); // 2026年10月5日を初期値
+
+        // タブ切り替え
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+            
+            if (tab === 'month') {
+                document.getElementById('tabMonth').classList.add('active');
+                document.querySelectorAll('.tab-item')[0].classList.add('active');
+                renderMonthView();
+            } else {
+                document.getElementById('tabWeek').classList.add('active');
+                document.querySelectorAll('.tab-item')[1].classList.add('active');
+                renderWeekView();
+            }
+        }
+
+        function changePeriod(direction) {
+            if (currentTab === 'month') {
+                currentDate.setMonth(currentDate.getMonth() + direction);
+                renderMonthView();
+            } else {
+                currentDate.setDate(currentDate.getDate() + (direction * 7));
+                renderWeekView();
+            }
+        }
+
+        function resetToCurrent() {
+            currentDate = new Date();
+            if (currentTab === 'month') renderMonthView();
+            else renderWeekView();
+        }
+
+        // 月表示の描画
+        function renderMonthView() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            document.getElementById('currentTitleinnerText' || 'currentTitle').innerText = `${year}年 ${month + 1}月`;
+
+            const grid = document.getElementById('monthGrid');
+            // ヘッダーを残してセルをクリア
+            const headers = grid.querySelectorAll('.weekday-header');
+            grid.innerHTML = '';
+            headers.forEach(h => grid.appendChild(h));
+
+            // 月初めの曜日調整 (月曜始まり: 0=月, 6=日)
+            let firstDay = new Date(year, month, 1).getDay();
+            firstDay = (firstDay === 0) ? 6 : firstDay - 1;
+
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            const prevLastDate = new Date(year, month, 0).getDate();
+
+            // 前月の余白
+            for (let i = firstDay - 1; i >= 0; i--) {
+                const cell = createCellElement(prevLastDate - i, true);
+                grid.appendChild(cell);
+            }
+
+            // 当月の日付
+            for (let d = 1; d <= lastDate; d++) {
+                const cell = createCellElement(d, false, year, month, d);
+                grid.appendChild(cell);
+            }
+
+            // 翌月の余白（最大6行＝42マスに満たない分）
+            const totalCells = grid.children.length - 7;
+            const remaining = (totalCells <= 35) ? (35 - totalCells) : (42 - totalCells);
+            for (let d = 1; d <= remaining; d++) {
+                const cell = createCellElement(d, true);
+                grid.appendChild(cell);
+            }
+        }
+
+        function createCellElement(dayNum, isOtherMonth, year, month, date) {
+            const div = document.createElement('div');
+            div.className = `calendar-cell ${isOtherMonth ? 'other-month' : ''}`;
+            if (!isOtherMonth) {
+                div.onclick = () => openDayDetail(year, month, date);
+                div.innerHTML = `
+                    <div class="day-num">${dayNum}</div>
+                    <div class="calendar-cell-summary summary-chita">ち: 在宅/◯</div>
+                    <div class="calendar-cell-summary summary-akita">あ: 出社/19:00</div>
+                `;
+            } else {
+                div.innerHTML = `<div class="day-num">${dayNum}</div>`;
+            }
+            return div;
+        }
+
+        // 週表示の描画
+        function renderWeekView() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const date = currentDate.getDate();
+            const dayOfWeek = currentDate.getDay();
+            const diffToMonday = (dayOfWeek === 0) ? -6 : 1 - dayOfWeek;
+            
+            const monday = new Date(year, month, date + diffToMonday);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+
+            document.getElementById('currentTitle').innerText = 
+                `${monday.getMonth() + 1}/${monday.getDate()} 〜 ${sunday.getMonth() + 1}/${sunday.getDate()}`;
+
+            const container = document.getElementById('weekContainer');
+            container.innerHTML = '';
+
+            const days = ['月', '火', '水', '木', '金', '土', '日'];
+            for (let i = 0; i < 7; i++) {
+                const targetD = new Date(monday);
+                targetD.setDate(monday.getDate() + i);
+
+                const row = document.createElement('div');
+                row.className = 'week-row';
+                row.innerHTML = `
+                    <div class="week-date-col">
+                        <span>${targetD.getMonth() + 1}/${targetD.getDate()}</span>
+                        <span>(${days[i]})</span>
+                    </div>
+                    <div class="week-data-col">
+                        <div class="person-row">
+                            <span class="person-tag chita">ちーた</span>
+                            <span>在宅 / 帰宅:◯ / 夕食:◯</span>
+                        </div>
+                        <div class="person-row">
+                            <span class="person-tag akita">あきた</span>
+                            <span>出社 / 帰宅:19:00 / 夕食:×</span>
+                        </div>
+                        <div style="font-size:9px; color:#666;">夕食メニュー: タコスサラダ</div>
+                    </div>
+                    <div class="week-edit-btn-col">
+                        <button onclick="openSingleEdit(${targetD.getFullYear()}, ${targetD.getMonth()}, ${targetD.getDate()})">✏️</button>
+                    </div>
+                `;
+                container.appendChild(row);
+            }
+        }
+
+        // モーダル制御
+        function openDayDetail(y, m, d) {
+            document.getElementById('detailModalTitle').innerText = `${m + 1}月${d}日(${['日','月','火','水','木','金','土'][new Date(y,m,d).getDay()]}) の詳細`;
+            document.getElementById('detailModalBody').innerHTML = `
+                <div style="margin-bottom:12px;">
+                    <div style="color:var(--chita-color); font-weight:bold;">● ちーた</div>
+                    <div>予定: 在宅</div>
+                    <div>帰宅時刻: ◯</div>
+                    <div>夕食: ◯</div>
+                </div>
+                <div>
+                    <div style="color:var(--akita-color); font-weight:bold;">● あきた</div>
+                    <div>予定: 出社</div>
+                    <div>帰宅時刻: 19:00</div>
+                    <div>夕食: ×</div>
+                </div>
+                <div style="margin-top:12px; border-top:1px solid #eee; padding-top:6px;">
+                    <div><b>夕食メニュー:</b> タコスサラダ</div>
+                    <div><b>備考:</b> 特になし</div>
+                </div>
+            `;
+            document.getElementById('dayDetailModal').classList.add('open');
+        }
+
+        function openSingleEdit(y, m, d) {
+            closeModal('dayDetailModal');
+            document.getElementById('editModalTitle').innerText = `${m + 1}月${d}日の編集`;
+            document.getElementById('editModalBody').innerHTML = `
+                <div class="section-divider chita">■ ちーたの予定</div>
+                <div class="form-group"><label>予定</label><input type="text" value="在宅" maxlength="20"></div>
+                <div class="form-group"><label>帰宅時刻</label><input type="text" value="◯"></div>
+                <div class="form-group"><label>夕食要否</label><select><option>◯</option><option>×</option><option>未定</option></select></div>
+
+                <div class="section-divider akita">■ あきたの予定</div>
+                <div class="form-group"><label>予定</label><input type="text" value="出社" maxlength="20"></div>
+                <div class="form-group"><label>帰宅時刻</label><input type="text" value="19:00"></div>
+                <div class="form-group"><label>夕食要否</label><select><option>◯</option><option selected>×</option><option>未定</option></select></div>
+
+                <div class="section-divider">■ 共通項目</div>
+                <div class="form-group"><label>夕食メニュー</label><input type="text" value="タコスサラダ" maxlength="20"></div>
+                <div class="form-group"><label>備考</label><input type="text" value=""></div>
+            `;
+            document.getElementById('singleEditModal').classList.add('open');
+        }
+
+        function openEditFromDetail() {
+            closeModal('dayDetailModal');
+            openSingleEdit(2026, 9, 5); // サンプル用
+        }
+
+        function openBatchModal() {
+            let html = '';
+            const days = ['月', '火', '水', '木', '金', '土', '日'];
+            days.forEach((d, i) => {
+                html += `
+                    <div style="font-weight:bold; background:#eee; padding:4px; margin-top:8px; border-radius:3px;">10/${5+i} (${d})</div>
+                    <div style="display:flex; gap:6px; margin-top:4px;">
+                        <input type="text" placeholder="ちーた予定" style="flex:1;" maxlength="20">
+                        <input type="text" placeholder="あきた予定" style="flex:1;" maxlength="20">
+                    </div>
+                `;
+            });
+            document.getElementById('batchEditBody').innerHTML = html;
+            document.getElementById('batchEditModal').classList.add('open');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('open');
+        }
+
+        function saveSingleData() {
+            alert('保存しました（※GAS連携時にスプレッドシートへ書き込みます）');
+            closeModal('singleEditModal');
+        }
+
+        function saveBatchData() {
+            alert('一括保存しました（※GAS連携時にスプレッドシートへ書き込みます）');
+            closeModal('batchEditModal');
+        }
+
+        // 初期表示
+        renderMonthView();
+    </script>
+</body>
+</html>
