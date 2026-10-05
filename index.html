@@ -532,24 +532,98 @@
         let currentDate = new Date(2026, 9, 5);
         let isInlineEditing = false;
 
-        let sampleData = {
-            "2026-10-5": {
-                chita: { plan: "在宅", returnTime: "◯", dinner: "◯" },
-                akita: { plan: "出社", returnTime: "19:00", dinner: "×" },
-                menu: "タコスサラダ", memo: "特になし"
-            },
-            "2026-10-10": {
-                chita: { plan: "夏休み", returnTime: "0:00", dinner: "×" },
-                akita: { plan: "飲み会", returnTime: "23:00", dinner: "×" },
-                menu: "カレー", memo: ""
-            },
-            "2026-10-11": {
-                isHolidayOverride: true,
-                chita: { plan: "予定", departTime: "10:00", returnTime: "18:00", lunch: "◯", dinner: "◯" },
-                akita: { plan: "予定", departTime: "10:00", returnTime: "17:00", lunch: "×", dinner: "◯" },
-                menu: "外食", memo: "ジム行く"
+        // ① サンプルデータを空にして、スプレッドシートから読み込むようにする
+        let sampleData = {};
+
+        // 【要設定】先ほどデプロイしたGASの「ウェブアプリのURL」をここに貼り付けてください
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwhj2YLitUN_ATOhOCn8b259voiOsEfyM-Nj2Tz8_qLL63lXgwwPBM6mvNkaek5hMuBDA/exec";
+
+        // 起動時にデータを取得する関数
+        async function fetchScheduleData() {
+            try {
+                const response = await fetch(GAS_API_URL);
+                const data = await response.json();
+                sampleData = data;
+                renderMonthView(); // データ取得後に再描画
+            } catch (error) {
+                console.error("データの取得に失敗しました:", error);
+                alert("データの読み込みに失敗しました。");
             }
-        };
+        }
+
+        // スプレッドシートへデータを送信（保存）する関数
+        async function postScheduleData() {
+            try {
+                await fetch(GAS_API_URL, {
+                    method: "POST",
+                    mode: "no-cors", // GASのCORS制限を回避するため
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(sampleData)
+                });
+            } catch (error) {
+                console.error("データの保存に失敗しました:", error);
+            }
+        }
+
+        // ----------------------------
+        // （中略：祝日判定やタブ切り替えなどの既存関数はそのまま）
+        // ----------------------------
+
+        function saveSingleData() {
+            const dKey = window.editingTargetKey;
+            const isHol = window.editingIsHoliday;
+
+            if (!sampleData[dKey]) {
+                sampleData[dKey] = { chita: {}, akita: {}, menu: "", memo: "" };
+            }
+
+            sampleData[dKey].chita = {
+                plan: document.getElementById('edit_c_plan').value,
+                departTime: isHol ? document.getElementById('edit_c_depart').value : undefined,
+                returnTime: document.getElementById('edit_c_return').value,
+                lunch: isHol ? document.getElementById('edit_c_lunch').value : undefined,
+                dinner: document.getElementById('edit_c_dinner').value
+            };
+
+            sampleData[dKey].akita = {
+                plan: document.getElementById('edit_a_plan').value,
+                departTime: isHol ? document.getElementById('edit_a_depart').value : undefined,
+                returnTime: document.getElementById('edit_a_return').value,
+                lunch: isHol ? document.getElementById('edit_a_lunch').value : undefined,
+                dinner: document.getElementById('edit_a_dinner').value
+            };
+
+            sampleData[dKey].menu = document.getElementById('edit_menu').value;
+            sampleData[dKey].memo = document.getElementById('edit_memo').value;
+
+            // ② 単体保存時にスプレッドシートへ送信
+            postScheduleData();
+
+            alert('保存しました');
+            closeModal('singleEditModal');
+            if (currentTab === 'month') renderMonthView();
+            else renderWeekView();
+        }
+
+        function saveBatchData() {
+            collectBatchInputValues();
+            
+            // ③ 一括保存時にスプレッドシートへ送信
+            postScheduleData();
+
+            alert('一括保存しました');
+            closeModal('batchEditModal');
+            renderWeekView();
+        }
+
+        // ----------------------------
+        // （中略：スワイプ処理などの既存コード）
+        // ----------------------------
+
+        // ページの初期化部分（一番下の renderMonthView(); をこれに書き換え）
+        fetchScheduleData();
 
         function getJapaneseHolidayName(year, month, day) {
             const m = month + 1;
